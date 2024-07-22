@@ -1,0 +1,17 @@
+# Ignore objects and archives, anywhere in the tree.
+*.[oa]
+*.so
+
+# Ignore all root files
+*.root
+
+# Ignore tar balls
+*.tar.gz
+
+# Ignore data and figures folders
+data
+figures
+eventPlaneCorrelation
+
+# Ignore .DS_Store, if mac for some reason makes this file
+.DS_Store
