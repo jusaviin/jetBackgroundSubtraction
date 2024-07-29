@@ -64,9 +64,9 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fVertexZ(-100),
   fHiBin(-1),
   fPtHat(0),
-  fPrimaryVertexFilterBit(0),
-  fHfCoincidenceFilterBit(0),
-  fClusterCompatibilityFilterBit(0),
+  fPrimaryVertexFilterBit(1),
+  fHfCoincidenceFilterBit(1),
+  fClusterCompatibilityFilterBit(1),
   fnJets(0),
   fnGenJets(0),
   fEventWeight(1),
@@ -182,9 +182,9 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fVertexZ(-100),
   fHiBin(-1),
   fPtHat(0),
-  fPrimaryVertexFilterBit(0),
-  fHfCoincidenceFilterBit(0),
-  fClusterCompatibilityFilterBit(0),
+  fPrimaryVertexFilterBit(1),
+  fHfCoincidenceFilterBit(1),
+  fClusterCompatibilityFilterBit(1),
   fnJets(0),
   fnGenJets(0),
   fEventWeight(1),
@@ -493,7 +493,7 @@ void MonteCarloForestReader::Initialize(){
   fSkimTree->SetBranchStatus("*",0);
   fSkimTree->SetBranchStatus("pprimaryVertexFilter",1);
   fSkimTree->SetBranchAddress("pprimaryVertexFilter",&fPrimaryVertexFilterBit,&fPrimaryVertexBranch);
-  fSkimTree->SetBranchStatus("pphfCoincFilter2Th4",1);
+  fSkimTree->SetBranchStatus("pphfCoincFilter2Th4",1); 
   fSkimTree->SetBranchAddress("pphfCoincFilter2Th4", &fHfCoincidenceFilterBit, &fHfCoincidenceBranch);
   fSkimTree->SetBranchStatus("pclusterCompatibilityFilter",1);
   fSkimTree->SetBranchAddress("pclusterCompatibilityFilter", &fClusterCompatibilityFilterBit, &fClusterCompatibilityBranch);
