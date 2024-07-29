@@ -459,6 +459,14 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       //    Determine the event plane from generator level information
       //******************************************************************
 
+      // Before calculating the event plane, reset all the variables from the previous event
+      eventPlaneMultiplicity = 0;
+      for(Int_t iFlow = 0; iFlow < nFlowComponentsEP; iFlow++){
+        eventPlaneQ[iFlow] = 0;
+        eventPlaneQx[iFlow] = 0;
+        eventPlaneQy[iFlow] = 0;
+      }
+
       // Loop over all generator level particles in the event
       nParticles = fEventReader->GetNGenParticles();
       for(Int_t iParticle = 0; iParticle < nParticles; iParticle++){
