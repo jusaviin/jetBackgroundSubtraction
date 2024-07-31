@@ -4,26 +4,33 @@
 void fitJetEventPlaneVn(){
 
   // Open the data files
-  const int nFiles = 2;
-  TFile *inputFile[nFiles];
-  TString jetLegendString[nFiles];
-  inputFile[0] = TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_smallTest_genJets_2024-06-26.root");
-  jetLegendString[0] = "Gen jets";
-  inputFile[1] = TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_smallTest_defaultFlow_2024-06-26.root");
-  jetLegendString[1] = "Default flow";
+  std::vector<TFile*> inputFile;
+  std::vector<TString> jetLegendString;
+  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_generatorJets_fullRun2MC_bugFix_2024-07-29.root"));
+  jetLegendString.push_back("Gen jets");
+  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_defaultFlowJets_fullRun2MC_bugFix_2024-07-29.root"));
+  jetLegendString.push_back("Default flow jets");
+  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt15_2024-07-30.root"));
+  jetLegendString.push_back("Iterative flow, 15 GeV");
+  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt20_2024-07-30.root"));
+  jetLegendString.push_back("Iterative flow, 20 GeV");
+  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt30_2024-07-30.root"));
+  jetLegendString.push_back("Iterative flow, 30 GeV");
+
+  // Find the number of files
+  const int nFiles = inputFile.size();
 
   // Selection for jet type
   const int nJetType = 2;
   TString jetTypeString[nJetType] = {"inclusiveJet", "leadingJet"};
   TString looseJetTypeString[nJetType] = {"Inclusive jet", "Leading jet"};
-  int iJetType = 0; // Select here 0 for inclusive jet, 1 for leading jet
+  int iJetType = 1; // Select here 0 for inclusive jet, 1 for leading jet
   
   double centralityBinBorders[] = {0,10,30,50,90};
   
   bool matchYields = true;  // For comparison purposes, match the average yields of different jet collections
-  int referenceYield = 0;   // Choose which jet collection to use as basis for yield matching
     
-  bool drawAllInSamePlot = true;  // True: Draw all three jet collection to the same plot. False: Use separate plots
+  int nRebin = 2; // Option to rebin the histograms
   bool hideFit = false;
   
   bool printVs = false; // True = Print the jet vn values to the console. False = Do not do that
@@ -40,7 +47,7 @@ void fitJetEventPlaneVn(){
   
   for(int iFile = 0; iFile < nFiles; iFile++){
     for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
-      hJetEventPlane[iFile][iCentrality] = (TH1D*) inputFile[iFile]->Get(Form("%sEventPlaneOrder%d_C%d", jetTypeString[iJetType].Data(), eventPlaneOrder, iCentrality));    
+      hJetEventPlane[iFile][iCentrality] = (TH1D*) inputFile.at(iFile)->Get(Form("%sEventPlaneOrder%d_C%d", jetTypeString[iJetType].Data(), eventPlaneOrder, iCentrality));    
     } // Centrality loop
   } // File loop
   
@@ -73,7 +80,7 @@ void fitJetEventPlaneVn(){
     for(int iFile = 0; iFile < nFiles; iFile++){
       for(int iFlow = 2; iFlow < 5; iFlow++){
         for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
-          cout << Form("%s-event plane v%d. ", looseJetTypeString[iJetType].Data(), iFlow) << jetLegendString[iFile].Data() << Form(". Cent %.0f-%.0f: ", centralityBinBorders[iCentrality], centralityBinBorders[iCentrality+1]) << fitFunctionJetEventPlane[iFile][iCentrality]->GetParameter(iFlow) << endl;
+          cout << Form("%s-event plane v%d. ", looseJetTypeString[iJetType].Data(), iFlow) << jetLegendString.at(iFile).Data() << Form(". Cent %.0f-%.0f: ", centralityBinBorders[iCentrality], centralityBinBorders[iCentrality+1]) << fitFunctionJetEventPlane[iFile][iCentrality]->GetParameter(iFlow) << endl;
         } // Centrality loop
       } // Flow component loop
     } // Jet type loop
@@ -84,66 +91,67 @@ void fitJetEventPlaneVn(){
   TString centralityString;
   TString compactCentralityString;
   TLegend *legend;
-  int colors[] = {kBlack, kRed, kBlue, kGreen+3};
-  double maxYscale, minYscale;
+  int colors[] = {kBlack, kRed, kBlue, kGreen+3, kMagenta, kCyan};
+  std::pair<double,double> yAxisZoom;
+  double spread;
   
   for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
     
     centralityString = Form("Cent: %.0f-%.0f%%",centralityBinBorders[iCentrality], centralityBinBorders[iCentrality+1]);
     compactCentralityString = Form("_C=%.0f-%.0f",centralityBinBorders[iCentrality], centralityBinBorders[iCentrality+1]);
     
-    if(drawAllInSamePlot){
-      legend = new TLegend(0.2,0.68,0.4,1);
-      legend->SetFillStyle(0);legend->SetBorderSize(0);legend->SetTextSize(0.05);legend->SetTextFont(62);
-      legend->AddEntry((TObject*)0, Form("%s",centralityString.Data()), "");
+    // Setup a legend for the plot
+    legend = new TLegend(0.2,0.68,0.4,1);
+    legend->SetFillStyle(0);legend->SetBorderSize(0);legend->SetTextSize(0.05);legend->SetTextFont(62);
+    legend->AddEntry((TObject*)0, Form("%s",centralityString.Data()), "");
+
+    // Find the minimum and maximum scales from all possible histograms
+    yAxisZoom.first = 1e10;
+    yAxisZoom.second = -1e10;
+
+    // Determine a good y-axis zoom range
+    for(int iFile = 0; iFile < nFiles; iFile++){
+      yAxisZoom = fitter->FindHistogramMinMax(hJetEventPlane[iFile][iCentrality], yAxisZoom);
     }
+    spread = yAxisZoom.second - yAxisZoom.first;
+    yAxisZoom.first = yAxisZoom.first - spread * 0.1;
+    yAxisZoom.second = yAxisZoom.second + spread * 0.1;
     
-    maxYscale = hJetEventPlane[referenceYield][iCentrality]->GetMaximum();
-    maxYscale = maxYscale + 0.2*maxYscale; // 0.1
-    minYscale = hJetEventPlane[referenceYield][iCentrality]->GetMinimum();
-    minYscale = minYscale - 0.02*minYscale;
-    
+    // Draw all the distributions to the same canvas
     for(int iFile = 0; iFile < nFiles; iFile++){
       
+      // Option to hide the Fourier fits from the histograms
       if(hideFit) hJetEventPlane[iFile][iCentrality]->RecursiveRemove(fitFunctionJetEventPlane[iFile][iCentrality]);
       
-      hJetEventPlane[iFile][iCentrality]->Rebin(2);
-      hJetEventPlane[iFile][iCentrality]->Scale(0.5);
-      hJetEventPlane[iFile][iCentrality]->GetYaxis()->SetRangeUser(minYscale, maxYscale);
-      if(drawAllInSamePlot) {
-        hJetEventPlane[iFile][iCentrality]->SetLineColor(colors[iFile]);
-        fitFunctionJetEventPlane[iFile][iCentrality]->SetLineColor(colors[iFile]);
-        
+      // Option to rebin the histograms
+      if(nRebin > 1){
+        hJetEventPlane[iFile][iCentrality]->Rebin(nRebin);
+        hJetEventPlane[iFile][iCentrality]->Scale(1.0 / nRebin);
       }
+
+      // Set drawing range and style for the histograms
+      hJetEventPlane[iFile][iCentrality]->GetYaxis()->SetRangeUser(yAxisZoom.first, yAxisZoom.second);
+      hJetEventPlane[iFile][iCentrality]->SetLineColor(colors[iFile]);
+      fitFunctionJetEventPlane[iFile][iCentrality]->SetLineColor(colors[iFile]);
       
-      if(!drawAllInSamePlot || iFile == 0){
-      drawer->DrawHistogram(hJetEventPlane[iFile][iCentrality], "#Delta#varphi", "A.U.", " ");
+      // Draw the histograms to the canvas
+      if(iFile == 0){
+        drawer->DrawHistogram(hJetEventPlane[iFile][iCentrality], "#Delta#varphi", "A.U.", " ");
       } else {
         hJetEventPlane[iFile][iCentrality]->Draw("same");
       }
       
-      if(!drawAllInSamePlot){
-        legend = new TLegend(0.2,0.7,0.4,0.9);
-        legend->SetFillStyle(0);legend->SetBorderSize(0);legend->SetTextSize(0.05);legend->SetTextFont(62);
-        legend->AddEntry((TObject*)0, Form("%s, %s > 80 GeV", centralityString.Data(), looseJetTypeString[iJetType].Data()), "");
-        legend->AddEntry((TObject*)0, jetLegendString[iFile], "");
-        legend->Draw();
-        
-        if(saveFigures){
-          gPad->GetCanvas()->SaveAs(Form("figures/%sEventPlaneDeltaPhi%s_%s%s.pdf", jetTypeString[iJetType].Data(), saveComment.Data(), jetLegendString[iFile].Data(), compactCentralityString.Data()));
-        }
-        
-      } else {
-        legend->AddEntry(hJetEventPlane[iFile][iCentrality], Form("%s, v_{%d} = %.3f", jetLegendString[iFile].Data(), eventPlaneOrder, fitFunctionJetEventPlane[iFile][iCentrality]->GetParameter(eventPlaneOrder)) ,"l");
-      }
+      // Add a legend entry for this histogram
+      legend->AddEntry(hJetEventPlane[iFile][iCentrality], Form("%s, v_{%d} = %.3f", jetLegendString.at(iFile).Data(), eventPlaneOrder, fitFunctionJetEventPlane[iFile][iCentrality]->GetParameter(eventPlaneOrder)) ,"l");
       
     } // Jet type loop
-    if(drawAllInSamePlot){
-      legend->Draw();
-      
-      if(saveFigures){
-        gPad->GetCanvas()->SaveAs(Form("figures/%sEventPlaneDeltaPhi%s_jetTypeComparison%s.pdf", jetTypeString[iJetType].Data(), saveComment.Data(), compactCentralityString.Data()));
-      }
+
+    // Draw the legend
+    legend->Draw();
+     
+    // Option to save the figures 
+    if(saveFigures){
+      gPad->GetCanvas()->SaveAs(Form("figures/%sEventPlaneDeltaPhi%s_jetTypeComparison%s.pdf", jetTypeString[iJetType].Data(), saveComment.Data(), compactCentralityString.Data()));
     }
   } // Centrality loop
 }

@@ -9,7 +9,7 @@ MaxParticlePtEventPlane 5  # Maximum pT for particles included in the event plan
 
 # Cuts for jets
 MatchJets 0 # 0 = Do not match jets. 1 = Match generator level jets with reconstructed jets. 2 = Anti-match jets
-JetType 1                  # 0 = Reconstructed jets, 1 = Generator level jets
+JetType 0                  # 0 = Reconstructed jets, 1 = Generator level jets
 JetSubtraction 2           # 0 = Calo PU jets, 1 = csPF jets, 2 = flowPuCsPF jets 
 JetAxis 1                  # 0 = E-scheme axis, 1 = WTA axis
 JetEtaCut 1.6              # Region in eta around midrapidity taken into account in analysis

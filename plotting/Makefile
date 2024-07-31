@@ -1,5 +1,5 @@
 PROGRAM       = DrawingClasses
-version       = JetBackgroundStudu
+version       = JetBackgroundStudy
 CXX           = g++
 CXXFLAGS      = -O -Wall -fPIC -D$(version) # Add -g for debugger
 LDFLAGS       = -O
@@ -15,7 +15,7 @@ CXXFLAGS  += $(INCS)
 #HDRSDICT = SplitCanvas.h
 # HDRS += $(HDRSDICT) ... nanoDict.h
 
-HDRS += AlgorithmLibrary.h
+HDRS += AlgorithmLibrary.h JetBackgroundCard.h
 
 SRCS = $(HDRS:.h=.cxx)
 OBJS = $(HDRS:.h=.o)

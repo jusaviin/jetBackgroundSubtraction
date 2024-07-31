@@ -1,10 +1,26 @@
-void getJetEventPlaneCorrelationHistograms(){
+#include "JetBackgroundCard.h" R__LOAD_LIBRARY(plotting/DrawingClasses.so)
+
+/*
+ *  Macro for projecting the jet-event plane correlation histograms from THnSparses
+ *
+ *  const char* inputFileName = Name of the file from which the histograms are projected
+ *  const char* outputFileName = Name of the file to which the extracted histograms go
+ */
+void getJetEventPlaneCorrelationHistograms(const char* inputFileName, const char* outputFileName){
 
   // Open the data file
-  TFile *inputFile = TFile::Open("veryCoolData.root");
+  TFile *inputFile = TFile::Open(inputFileName);
   
   // Configuration
   const int nEventPlaneOrder = 3;
+
+  // Add information about the used input files to the card
+  JetBackgroundCard* card = new JetBackgroundCard(inputFile);
+  card->AddFileName(inputFileName);
+
+  // The git hash here will be replaced by the latest commit hash by projectHistograms.sh script
+  const char* gitHash = "GITHASHHERE";
+  card->AddProjectionGitHash(gitHash);
   
   // Read the histogram with the given name from the file
   THnSparseD *inclusiveJetEventPlaneArray[nEventPlaneOrder];
@@ -53,14 +69,17 @@ void getJetEventPlaneCorrelationHistograms(){
     leadingJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(0,0);
   }
   
-  // Save the histogram to a file
-  TFile *outputFile = new TFile("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_smallTest_genJets_2024-06-26.root","UPDATE");
+  // Save the histograms to the output file
+  TFile *outputFile = new TFile(outputFileName,"UPDATE");
   for(int iOrder = 0; iOrder < nEventPlaneOrder; iOrder++){
     for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
       hInclusiveJetEventPlane[iOrder][iCentrality]->Write("",TObject::kOverwrite);
       hLeadingJetEventPlane[iOrder][iCentrality]->Write("",TObject::kOverwrite);
     }
   }
+
+  // Save also the card information to file
+  if(!gDirectory->GetDirectory("JCard")) card->Write(outputFile);
   
   outputFile->Close();
 }
