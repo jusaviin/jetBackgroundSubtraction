@@ -38,32 +38,52 @@ void getJetEventPlaneCorrelationHistograms(const char* inputFileName, const char
     }
   }
   
-  // Apply the restrictions in the set of axes
-  const int nCentralityBins = 4;
-  TH1D *hInclusiveJetEventPlane[nEventPlaneOrder][nCentralityBins];
-  TH1D *hLeadingJetEventPlane[nEventPlaneOrder][nCentralityBins];
+  // Find the number of centrality and jet pT bins, and create one dimensional histograms
+  const int nCentralityBins = inclusiveJetEventPlaneArray[0]->GetAxis(2)->GetNbins();
+  const int nJetPtBins = inclusiveJetEventPlaneArray[0]->GetAxis(1)->GetNbins();
+  TH1D *hInclusiveJetEventPlane[nEventPlaneOrder][nCentralityBins][nJetPtBins+1];
+  TH1D *hLeadingJetEventPlane[nEventPlaneOrder][nCentralityBins][nJetPtBins+1];
   
   TString newName;
   
-  // Regular centrality based binning
+  // Project the histograms in the defined centrality and jet pT bins
   for(int iOrder = 0; iOrder < nEventPlaneOrder; iOrder++){
     for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
-      inclusiveJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(iCentrality+2,iCentrality+2);
+      inclusiveJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(iCentrality+1,iCentrality+1);
       newName = Form("inclusiveJetEventPlaneOrder%d_C%d", iOrder+2, iCentrality);
       
-      hInclusiveJetEventPlane[iOrder][iCentrality] = (TH1D*) inclusiveJetEventPlaneArray[iOrder]->Projection(0);
-      hInclusiveJetEventPlane[iOrder][iCentrality]->SetName(newName);
+      hInclusiveJetEventPlane[iOrder][iCentrality][nJetPtBins] = (TH1D*) inclusiveJetEventPlaneArray[iOrder]->Projection(0);
+      hInclusiveJetEventPlane[iOrder][iCentrality][nJetPtBins]->SetName(newName);
       
-      leadingJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(iCentrality+2,iCentrality+2);
+      leadingJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(iCentrality+1,iCentrality+1);
       newName = Form("leadingJetEventPlaneOrder%d_C%d", iOrder+2, iCentrality);
       
-      hLeadingJetEventPlane[iOrder][iCentrality] = (TH1D*) leadingJetEventPlaneArray[iOrder]->Projection(0);
-      hLeadingJetEventPlane[iOrder][iCentrality]->SetName(newName);
+      hLeadingJetEventPlane[iOrder][iCentrality][nJetPtBins] = (TH1D*) leadingJetEventPlaneArray[iOrder]->Projection(0);
+      hLeadingJetEventPlane[iOrder][iCentrality][nJetPtBins]->SetName(newName);
+
+      for(int iJetPt = 0; iJetPt < nJetPtBins; iJetPt++){
+
+        inclusiveJetEventPlaneArray[iOrder]->GetAxis(1)->SetRange(iJetPt+1,iJetPt+1);
+        newName = Form("inclusiveJetEventPlaneOrder%d_C%dJ%d", iOrder+2, iCentrality, iJetPt);
       
+        hInclusiveJetEventPlane[iOrder][iCentrality][iJetPt] = (TH1D*) inclusiveJetEventPlaneArray[iOrder]->Projection(0);
+        hInclusiveJetEventPlane[iOrder][iCentrality][iJetPt]->SetName(newName);
+
+        leadingJetEventPlaneArray[iOrder]->GetAxis(1)->SetRange(iJetPt+1,iJetPt+1);
+        newName = Form("leadingJetEventPlaneOrder%d_C%dJ%d", iOrder+2, iCentrality, iJetPt);
+      
+        hLeadingJetEventPlane[iOrder][iCentrality][iJetPt] = (TH1D*) leadingJetEventPlaneArray[iOrder]->Projection(0);
+        hLeadingJetEventPlane[iOrder][iCentrality][iJetPt]->SetName(newName);
+        
+      }
+
+      // Reset the jet pT range in the histogram arrays
+      inclusiveJetEventPlaneArray[iOrder]->GetAxis(1)->SetRange(0,0);
+      leadingJetEventPlaneArray[iOrder]->GetAxis(1)->SetRange(0,0);
     }
   }
   
-  // Reset the range in histogram arrays
+  // Reset the centrality range in histogram arrays
   for(int iOrder = 0; iOrder < nEventPlaneOrder; iOrder++){
     inclusiveJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(0,0);
     leadingJetEventPlaneArray[iOrder]->GetAxis(2)->SetRange(0,0);
@@ -73,8 +93,12 @@ void getJetEventPlaneCorrelationHistograms(const char* inputFileName, const char
   TFile *outputFile = new TFile(outputFileName,"UPDATE");
   for(int iOrder = 0; iOrder < nEventPlaneOrder; iOrder++){
     for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
-      hInclusiveJetEventPlane[iOrder][iCentrality]->Write("",TObject::kOverwrite);
-      hLeadingJetEventPlane[iOrder][iCentrality]->Write("",TObject::kOverwrite);
+      hInclusiveJetEventPlane[iOrder][iCentrality][nJetPtBins]->Write("",TObject::kOverwrite);
+      hLeadingJetEventPlane[iOrder][iCentrality][nJetPtBins]->Write("",TObject::kOverwrite);
+      for(int iJetPt = 0; iJetPt < nJetPtBins; iJetPt++){
+        hInclusiveJetEventPlane[iOrder][iCentrality][iJetPt]->Write("",TObject::kOverwrite);
+        hLeadingJetEventPlane[iOrder][iCentrality][iJetPt]->Write("",TObject::kOverwrite);
+      }
     }
   }
 
