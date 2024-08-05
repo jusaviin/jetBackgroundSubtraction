@@ -2,27 +2,85 @@
 #include "JDrawer.h"
 #include "JetBackgroundCard.h"
 
-void fitJetEventPlaneVn(){
+/*
+ * Macro for drawing jet-event plane correlation histograms and doing a flow fit to them
+ *
+ *  TString inputFileList = If defined, read the input files and legend strings from this file. If not, use the manually defined file names and legend strings 
+ */
+void fitJetEventPlaneVn(TString inputFileList = ""){
 
-  // Open the data files
+  // Define vectors for input files and legend string corresponding to said files
   std::vector<TFile*> inputFile;
   std::vector<TString> jetLegendString;
-  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_generatorJets_fullRun2MC_2024-07-29.root"));
-  jetLegendString.push_back("Gen jets");
-  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_defaultFlowJets_fullRun2MC_2024-07-29.root"));
-  jetLegendString.push_back("Default flow jets");
-  //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt15_2024-07-30.root"));
-  //jetLegendString.push_back("Iterative flow, 15 GeV");
-  //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt20_2024-07-30.root"));
-  //jetLegendString.push_back("Iterative flow, 20 GeV");
-  //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt30_2024-07-30.root"));
-  //jetLegendString.push_back("Iterative flow, 30 GeV");
-  inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt40_2024-08-01.root"));
-  jetLegendString.push_back("Iterative flow, 40 GeV");
-  //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt50_2024-08-01.root"));
-  //jetLegendString.push_back("Iterative flow, 50 GeV");
-  //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt60_2024-08-01.root"));
-  //jetLegendString.push_back("Iterative flow, 60 GeV");
+  TString saveComment;
+
+  // If a text file is provided as input, read the input files and legend string from there. Otherwise use manually defined ones
+  if(inputFileList.EndsWith(".txt")){
+
+    // Set up the input file list for reading
+    std::ifstream file_stream(inputFileList);
+    std::string line;
+    TObjArray* lineContents;
+    TObjString* lineItem;
+
+    bool firstLine = true;
+
+    // Open the input file list for reading
+    if( file_stream.is_open() ) {
+    
+      // Loop over the lines in the input file list
+      while( !file_stream.eof() ) {
+        getline(file_stream, line);
+        TString lineString(line);
+      
+        // If the line is non-empty, extract the file name and legend comment from it
+        if( lineString.CompareTo("", TString::kExact) != 0 ) {
+
+          if(firstLine){
+            saveComment = lineString;
+            firstLine = false;
+          } else {
+            // Other lines define the files that are compared, and a comment given to them in legend
+            lineContents = lineString.Tokenize("&"); // Tokenize the string from '&' character
+
+            // It is assumed that the line content before '|' character gives the file name
+            lineItem = (TObjString*)lineContents->At(0);
+            inputFile.push_back(TFile::Open(lineItem->String()));
+
+            // It is assumed taht the line content after '|' character gives the legend comment
+            lineItem = (TObjString*)lineContents->At(1);
+            jetLegendString.push_back(lineItem->String());
+          }
+        } // Empty line if
+      
+      } // Loop over lines in the file
+    
+    // If cannot read the file, give error and end program
+    } else {
+      std::cout << "Error, could not open " << inputFileList.Data() << " for reading" << std::endl;
+      std::cout << "Please check the file name! Will not run the code!" << std::endl;
+      return;
+    }
+
+  } else {
+
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_generatorJets_fullRun2MC_2024-07-29.root"));
+    jetLegendString.push_back("Gen jets");
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_defaultFlowJets_fullRun2MC_2024-07-29.root"));
+    jetLegendString.push_back("Default flow jets");
+    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt15_2024-07-30.root"));
+    //jetLegendString.push_back("Iterative flow, 15 GeV");
+    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt20_2024-07-30.root"));
+    //jetLegendString.push_back("Iterative flow, 20 GeV");
+    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt30_2024-07-30.root"));
+    //jetLegendString.push_back("Iterative flow, 30 GeV");
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt40_2024-08-01.root"));
+    jetLegendString.push_back("Iterative flow, 40 GeV");
+    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt50_2024-08-01.root"));
+    //jetLegendString.push_back("Iterative flow, 50 GeV");
+    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt60_2024-08-01.root"));
+    //jetLegendString.push_back("Iterative flow, 60 GeV");
+  }
 
   // Create a vector of cards from all input files
   std::vector<JetBackgroundCard*> cardVector;
@@ -43,16 +101,16 @@ void fitJetEventPlaneVn(){
   // Default centrality bins: 4, 14, 34, 54, 94
   std::vector<std::pair<int,int>> analyzedCentralityBin;
   analyzedCentralityBin.push_back(std::make_pair(4,14));
-  analyzedCentralityBin.push_back(std::make_pair(14,34));
-  analyzedCentralityBin.push_back(std::make_pair(34,54));
-  analyzedCentralityBin.push_back(std::make_pair(54,94));
+  //analyzedCentralityBin.push_back(std::make_pair(14,34));
+  //analyzedCentralityBin.push_back(std::make_pair(34,54));
+  //analyzedCentralityBin.push_back(std::make_pair(54,94));
 
   // To use the whole region defined in the files, set the second bin to 0
   // Default jet pT bins: 80, 100, 120, 140, 160, 180, 200, 300, 500, 5020
   std::vector<std::pair<int,int>> analyzedJetPtBin;
   analyzedJetPtBin.push_back(std::make_pair(80, 0));
-  analyzedJetPtBin.push_back(std::make_pair(80, 100));
-  analyzedJetPtBin.push_back(std::make_pair(120, 140));
+  //analyzedJetPtBin.push_back(std::make_pair(80, 100));
+  //analyzedJetPtBin.push_back(std::make_pair(120, 140));
   
   bool matchYields = true;  // For comparison purposes, match the average yields of different jet collections
     
@@ -61,8 +119,10 @@ void fitJetEventPlaneVn(){
   
   bool printVs = false; // True = Print the jet vn values to the console. False = Do not do that
   
-  bool saveFigures = false;
-  TString saveComment = "_manualJECpfCs";
+  bool saveFigures = true;
+  if(!inputFileList.EndsWith(".txt")) saveComment = "manualJECpfCs";
+
+  if(saveComment.CompareTo("", TString::kExact) != 0) saveComment.Prepend("_");
   
   // Fing the number of bins in the files
   const int nCentralityBins = cardVector.at(0)->GetNCentralityBins();
@@ -113,7 +173,7 @@ void fitJetEventPlaneVn(){
         for(auto jetPtBin : analyzedJetPtBin){
           iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
           iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-          hJetEventPlane[iFile][iCentrality][iJetPt]->Fit("pol0");
+          hJetEventPlane[iFile][iCentrality][iJetPt]->Fit("pol0","0");
           averageYield[iFile][iCentrality][iJetPt] = hJetEventPlane[iFile][iCentrality][iJetPt]->GetFunction("pol0")->GetParameter(0);
           hJetEventPlane[iFile][iCentrality][iJetPt]->Scale(1 / averageYield[iFile][iCentrality][iJetPt]);
         } // Jet pT loop
@@ -130,7 +190,7 @@ void fitJetEventPlaneVn(){
       for(auto jetPtBin : analyzedJetPtBin){
         iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
         iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-        fitter->FourierFit(hJetEventPlane[iFile][iCentrality][iJetPt], 4);
+        fitter->FourierFit(hJetEventPlane[iFile][iCentrality][iJetPt], 4, false, "0");
         fitFunctionJetEventPlane[iFile][iCentrality][iJetPt] = hJetEventPlane[iFile][iCentrality][iJetPt]->GetFunction("fourier");
       }
     } // Centrality loop
@@ -200,10 +260,7 @@ void fitJetEventPlaneVn(){
     
       // Draw all the distributions to the same canvas
       for(int iFile = 0; iFile < nFiles; iFile++){
-      
-        // Option to hide the Fourier fits from the histograms
-        if(hideFit) hJetEventPlane[iFile][iCentrality][iJetPt]->RecursiveRemove(fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]);
-      
+            
         // Option to rebin the histograms
         if(nRebin > 1){
           hJetEventPlane[iFile][iCentrality][iJetPt]->Rebin(nRebin);
@@ -224,6 +281,11 @@ void fitJetEventPlaneVn(){
       
         // Add a legend entry for this histogram
         legend->AddEntry(hJetEventPlane[iFile][iCentrality][iJetPt], Form("%s, v_{%d} = %.3f", jetLegendString.at(iFile).Data(), eventPlaneOrder, fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]->GetParameter(eventPlaneOrder)) ,"l");
+
+        // Draw the fit if not explicitly required to hide it
+        if(!hideFit){
+          fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]->Draw("same");
+        }
       
       } // Jet type loop
 
