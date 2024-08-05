@@ -43,7 +43,7 @@ public:
   void TransformToRelativeUncertainty(TH1D* transformedHistogram, const bool centerAtOne = false);
   void TransformToAbsoluteUncertainty(TH1D* transformedHistogram, TH1D* absoluteScaleHistogram, const bool centerAtOne = false);
   void SuppressSingleBinFluctuations(TH1D* fluctuatingHistogram, const double lowRange, const double highRange, const double threshold, const double suppressionLevel);
-  TF1* FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool onlyNearSideFit = false); // Do a Fourier fit to the provided deltaPhi histogram
+  TF1* FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool onlyNearSideFit = false, const char* fitOption = ""); // Do a Fourier fit to the provided deltaPhi histogram
 
   TString GetToday(); // Getter for today's date
   

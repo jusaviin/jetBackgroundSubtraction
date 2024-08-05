@@ -540,10 +540,11 @@ TString AlgorithmLibrary::GetToday(){
  *  TH1D* hDeltaPhi = Fitted deltaPhi histogram
  *  const int maxVn = Largest vn included in the Fourier fit
  *  const bool onlyNearSideFit = Do the fit only on the near side of the distribution
+ *  const char* fitOption = Option given for the fitter
  *
  *  return = The Fourier fit function
  */
-TF1* AlgorithmLibrary::FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool onlyNearSideFit){
+TF1* AlgorithmLibrary::FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool onlyNearSideFit, const char* fitOption){
   
   // Define the fourier fit. Use fit parameters up to maxVn
   TString fourierFormula = "[0]*(1";
@@ -579,7 +580,7 @@ TF1* AlgorithmLibrary::FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool o
   double lowerFitBound = -TMath::Pi()/2.0;
   double upperFitBound = 3.0*TMath::Pi()/2.0;
   if(onlyNearSideFit) upperFitBound = TMath::Pi()/2.0;
-  hDeltaPhi->Fit("fourier", "", "", lowerFitBound, upperFitBound);
+  hDeltaPhi->Fit("fourier", fitOption, "", lowerFitBound, upperFitBound);
   
   // Return the fitted distribution
   return fourier;
