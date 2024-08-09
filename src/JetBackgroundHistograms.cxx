@@ -183,10 +183,15 @@ void JetBackgroundHistograms::CreateHistograms(){
   const Double_t maxClosurePt = 500;                            // Maximum gen jet pT for closure plots
   const Int_t nClosurePtBins = (maxClosurePt-minClosurePt)/10;  // Bin width of 10 for the Gen pT in closure plots
   
-  // Particle type for closure plots (0 = quark, 1 = gluon)
+  // Particle type for closure plots (0 = quark, 1 = gluon, 2 = undetermined)
   const Double_t minClosureParticleType = -0.5;                        // Closure particle type indexing starts from zero
-  const Double_t maxClosureParticleType = knClosureParticleTypes-0.5;  // Maximum closure particle type index
-  const Int_t nClosureParticleTypeBins = knClosureParticleTypes;       // Bin width for particle type is 1
+  const Double_t maxClosureParticleType = knInitialPartonTypes-0.5;  // Maximum closure particle type index
+  const Int_t nClosureParticleTypeBins = knInitialPartonTypes;       // Bin width for particle type is 1
+
+  // Flag for existance of a matching jet
+  const Double_t minMatchingJetFlag = -0.5;
+  const Double_t maxMatchingJetFlag = knMatchingTypes-0.5;
+  const Int_t nMatchingJetFlags = knMatchingTypes;
   
   // Binning for reco/gen ratio for closure histograms
   const Double_t minClosureRatio = 0.025;    // Minimum ratio for the closure plots
@@ -222,7 +227,7 @@ void JetBackgroundHistograms::CreateHistograms(){
   const Double_t maxJetPtEventPlane = jetPtBinsEventPlane[nJetPtBinsEventPlane];
 
   // Arrays for creating THnSparses
-  const Int_t nAxesJet = 5;
+  const Int_t nAxesJet = 6;
   Int_t nBinsJet[nAxesJet];
   Double_t lowBinBorderJet[nAxesJet];
   Double_t highBinBorderJet[nAxesJet];
@@ -274,10 +279,15 @@ void JetBackgroundHistograms::CreateHistograms(){
   lowBinBorderJet[3] = minCentrality;  // low bin border for centrality
   highBinBorderJet[3] = maxCentrality; // high bin border for centrality
   
-  // Axis 4 for the jet histogram: jet flavor (quark/gluon)
+  // Axis 4 for the jet histogram: jet flavor (quark/gluon/undetermined)
   nBinsJet[4] = nClosureParticleTypeBins;        // nBins for jet flavor
   lowBinBorderJet[4] = minClosureParticleType;   // low bin border for jet flavor
   highBinBorderJet[4] = maxClosureParticleType;  // high bin border for jet flavor
+
+  // Axis 5 for the jet histogram: matching jet flag (doesn't have/has matching jet)
+  nBinsJet[5] = nMatchingJetFlags;            // nBins for matching jet flag
+  lowBinBorderJet[5] = minMatchingJetFlag;    // low bin border for matching jet flag
+  highBinBorderJet[5] = maxMatchingJetFlag;   // high bin border for matching jet flag
   
   // Create the histogram for all jets using the above binning information
   fhInclusiveJet = new THnSparseF("inclusiveJet", "inclusiveJet", nAxesJet, nBinsJet, lowBinBorderJet, highBinBorderJet); fhInclusiveJet->Sumw2();
@@ -309,7 +319,7 @@ void JetBackgroundHistograms::CreateHistograms(){
   lowBinBorderJetClosure[3] = minCentrality;    // low bin border for centrality
   highBinBorderJetClosure[3] = maxCentrality;   // high bin border for centrality
   
-  // Axis 4 for the jet pT closure histogram: ref parton = quark/gluon
+  // Axis 4 for the jet pT closure histogram: ref parton = quark/gluon/undetermined
   nBinsJetClosure[4] = nClosureParticleTypeBins;         // nBins for reference parton
   lowBinBorderJetClosure[4] = minClosureParticleType;    // low bin border for reference parton
   highBinBorderJetClosure[4] = maxClosureParticleType;   // high bin border for reference parton
@@ -332,17 +342,17 @@ void JetBackgroundHistograms::CreateHistograms(){
   
   // ======== THnSparses for jet-event plane correlation study ========
   
-  // Axis 1 for the additional histogram: DeltaPhi between jet and event plane angle
+  // Axis 0 for the additional histogram: DeltaPhi between jet and event plane angle
   nBinsJetPtEventPlaneCorrelation[0] = nDeltaPhiBinsJetEventPlane;       // nBins for deltaPhi between jet and event plane
   lowBinBorderJetEventPlaneCorrelation[0] = minDeltaPhiJetEventPlane;    // low bin border for deltaPhi between jet and event plane
   highBinBorderJetEventPlaneCorrelation[0] = maxDeltaPhiJetEventPlane;   // high bin border for deltaPhi between jet and event plane
   
-  // Axis 2 for the additional histogram: jet pT
+  // Axis 1 for the additional histogram: jet pT
   nBinsJetPtEventPlaneCorrelation[1] = nJetPtBinsEventPlane;       // nBins for wide multiplicity bins
   lowBinBorderJetEventPlaneCorrelation[1] = minJetPtEventPlane;    // low bin border for wide multiplicity
   highBinBorderJetEventPlaneCorrelation[1] = maxJetPtEventPlane;   // high bin border for wide multiplicity
   
-  // Axis 3 for the additional histogram: Centrality
+  // Axis 2 for the additional histogram: centrality
   nBinsJetPtEventPlaneCorrelation[2] = nWideCentralityBins;           // nBins for centrality
   lowBinBorderJetEventPlaneCorrelation[2] = minCentrality;          // low bin border for centrality
   highBinBorderJetEventPlaneCorrelation[2] = maxCentrality;         // high bin border for centrality

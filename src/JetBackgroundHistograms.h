@@ -17,8 +17,9 @@ public:
   
   // Enumeration for event types to event histogram and track cuts for track cut histogram
   enum enumEventTypes {kAll, kPrimaryVertex, kHfCoincidence, kClusterCompatibility, kVzCut, knEventTypes};
-  enum enumClosureParticleType {kQuark,kGluon,knClosureParticleTypes};
+  enum enumInitialPartonType {kQuark, kGluon, kUndetermined, knInitialPartonTypes};
   enum enumEventPlaneOrder {kSecondOrderEventPlane, kThirdOrderEventPlane, kFourthOrderEventPlane, knEventPlanes};
+  enum enumJetMatchingType {kNoMathcingJet, kHasMatchingJet, knMatchingTypes};
     
   // Constructors and destructor
   JetBackgroundHistograms(); // Default constructor

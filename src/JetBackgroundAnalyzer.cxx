@@ -24,7 +24,6 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer() :
   fRng(0),
   fJetType(0),
   fJetSubtraction(2),
-  fMatchJets(0),
   fDebugLevel(0),
   fVzWeight(1),
   fCentralityWeight(1),
@@ -121,7 +120,6 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(const JetBackgroundAnalyzer& in) :
   fRng(in.fRng),
   fJetType(in.fJetType),
   fJetSubtraction(in.fJetSubtraction),
-  fMatchJets(in.fMatchJets),
   fDebugLevel(in.fDebugLevel),
   fVzWeight(in.fVzWeight),
   fCentralityWeight(in.fCentralityWeight),
@@ -163,7 +161,6 @@ JetBackgroundAnalyzer& JetBackgroundAnalyzer::operator=(const JetBackgroundAnaly
   fRng = in.fRng;
   fJetType = in.fJetType;
   fJetSubtraction = in.fJetSubtraction;
-  fMatchJets = in.fMatchJets;
   fDebugLevel = in.fDebugLevel;
   fVzWeight = in.fVzWeight;
   fCentralityWeight = in.fCentralityWeight;
@@ -234,12 +231,11 @@ void JetBackgroundAnalyzer::ReadConfigurationFromCard(){
   fJetClosureMinimumPt = fCard->Get("MinJetPtClosure"); // Minimum jet pT for closure histograms
 
   //****************************************
-  //       Jet selection and matching
+  //            Jet selection
   //****************************************
   fJetType = fCard->Get("JetType");               // Select the type of analyzed jets (Reconstructed / Generator level)
   fJetSubtraction = fCard->Get("JetSubtraction"); // Select the background subtracted algorithm (Calo PU, PFCS, flow PFCS)
   fJetAxis = fCard->Get("JetAxis");               // Select between E-escheme and WTA axes
-  fMatchJets = fCard->Get("MatchJets");           // Match flag between reconstructed and generator level jets
 
   //***************************************
   //            Jet pT closure
@@ -277,12 +273,14 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   Double_t jetPhi = 0;              // phi of the i:th jet in the event
   Double_t jetEta = 0;              // eta of the i:th jet in the event
   Int_t jetFlavor = 0;              // Flavor of the jet. 0 = Quark jet. 1 = Gluon jet.
+  Int_t matchingJetExists = 0;      // Flag for having a matching jet. 0 = No match found. 1 = Match exist
 
   // Variables for leading jet
   Double_t leadingJetPt = 0;        // pT of the leading jet
   Double_t leadingJetPhi = 0;       // phi of the leading jet
   Double_t leadingJetEta = 0;       // eta of the leading jet
-  Int_t leadingJetFlavor = 0;       // Flavor of the leading jet. 0 = Quark jet. 1 = Gluon jet.
+  Int_t leadingJetFlavor = 0;       // Flavor of the leading jet. 0 = Quark jet. 1 = Gluon jet, 2 = Flavor undetermined
+  Int_t leadingJetMatch = 0;        // 0 = No match found. 1 = Match exist
 
   // Variables for matched reconstructed jet
   Double_t reconstructedJetPt = 0;   // pT of the reconstructed jet
@@ -299,11 +297,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   Double_t smearingFactor = 0;       // Larger of the JEC uncertainties
   
   // Variables for jet matching and closure
-  Int_t unmatchedCounter = 0;       // Number of jets that fail the matching
-  Int_t matchedCounter = 0;         // Number of jets that are matched
-  Bool_t antiMatchPtVeto = false;   // Reject matching if the pT is too far off
   Int_t partonFlavor = -999;        // Code for parton flavor in Monte Carlo
-  Int_t matchRejectedDueToPtCounter = 0; // Counter for too large pT difference between matched jets
 
   // Event plane study related variables
   const Int_t nFlowComponentsEP = 3;                  // Number of flow component to which the event plane is determined
@@ -318,7 +312,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   TString currentFile;
   
   // Fillers for THnSparses
-  const Int_t nFillJet = 5;         // Inclusive and leading jets
+  const Int_t nFillJet = 6;         // Inclusive and leading jets
   const Int_t nFillEventPlane = 3;  // Correlation between inclusive and leading jets with event plane
   const Int_t nAxesClosure = 7;     // Jet pT closure
   Double_t fillerJet[nFillJet];
@@ -513,6 +507,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       leadingJetEta = -999;
       leadingJetPhi = -999;
       leadingJetFlavor = -999;
+      leadingJetMatch = -999;
 
       // Jet loop
       nJets = fEventReader->GetNJets(fJetType);
@@ -521,7 +516,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         jetPt = fEventReader->GetJetRawPt(fJetType, jetIndex);  // Get the raw pT and do manual correction later
         jetPhi = fEventReader->GetJetPhi(fJetType, jetIndex);
         jetEta = fEventReader->GetJetEta(fJetType, jetIndex);
-        jetFlavor = 0;
+        jetFlavor = -999;
           
         //  ========================================
         //  ======== Apply jet quality cuts ========
@@ -537,25 +532,6 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           if(fMaximumMaxTrackPtFraction <= fEventReader->GetJetMaxTrackPt(jetIndex)/fEventReader->GetJetRawPt(jetIndex)){
             continue; // Cut for jets where all the pT is taken by one track
           }
-        }
-          
-        // Jet matching between reconstructed and generator level jets
-        if((fMatchJets == 1) && !fEventReader->HasMatchingJet(fJetType, jetIndex)){
-          unmatchedCounter++;
-          continue;
-        }      
-          
-        // Require also reference parton flavor to be quark [-6,-1] U [1,6] or gluon (21)
-        // We need to match gen jets to reco to get the parton flavor, but for reco jets it is always available in the forest
-        // Here should implement an option if only quark and gluon tagged jets should be allowed in final results!
-        if(fMatchJets == 1){
-            
-          matchedCounter++; // For debugging purposes, count the number of matched jets
-          jetFlavor = 0;    // Jet flavor. 0 = Quark jet.
-            
-          partonFlavor = fEventReader->GetJetFlavor(fJetType, jetIndex);
-          if(TMath::Abs(partonFlavor) == 21) jetFlavor = 1; // 1 = Gluon jet
-            
         }
           
         //  ========================================
@@ -581,20 +557,23 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         // After the jet pT can been corrected, apply analysis jet pT cuts
         if(jetPt < fJetMinimumPtCut) continue;
         if(jetPt > fJetMaximumPtCut) continue;
-          
-        // If we are matching jets, require that the matched jet has at least half of the reconstructed pT
-        if(fMatchJets > 0){
-          antiMatchPtVeto = false;
-          if(jetPt*0.5 > fEventReader->GetMatchedPt(fJetType, jetIndex) || fEventReader->GetMatchedPt(fJetType, jetIndex) * 0.5 > jetPt){
-            matchRejectedDueToPtCounter++;
-            antiMatchPtVeto = true;
-            if(fMatchJets == 1) continue;
+
+        // Check if the current jet has a matching jet
+        matchingJetExists = 0;
+        if(fEventReader->HasMatchingJet(fJetType, jetIndex)){
+          // Require that one pT is not less than half of the other pT
+          if(jetPt*0.5 < fEventReader->GetMatchedPt(fJetType, jetIndex) && fEventReader->GetMatchedPt(fJetType, jetIndex) * 0.5 < jetPt){
+            matchingJetExists = 1;
           }
         }
 
-        // Anti-matching between reconstructed and generator level jets
-        if((fMatchJets == 2) && fEventReader->HasMatchingJet(fJetType, jetIndex) && !antiMatchPtVeto){
-          continue;
+        // Find the jet flavor and translate it into a quark [-6,-1] U [1,6] or gluon (21)
+        // In the jet flavor is not any of these values, it remains undeterined
+        jetFlavor = JetBackgroundHistograms::kUndetermined;
+        partonFlavor = fEventReader->GetJetFlavor(fJetType, jetIndex);
+        if(TMath::Abs(partonFlavor) == 21) jetFlavor = JetBackgroundHistograms::kGluon;
+        if(TMath::Abs(partonFlavor) < 7){
+          if(partonFlavor != 0) jetFlavor = JetBackgroundHistograms::kQuark;
         }
 
         // After the event selection, update the leading jet variables
@@ -603,6 +582,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           leadingJetPhi = jetPhi;
           leadingJetEta = jetEta;
           leadingJetFlavor = jetFlavor;
+          leadingJetMatch = matchingJetExists;
         }
         
         //************************************************
@@ -610,11 +590,12 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         //************************************************
           
         // Fill the axes in correct order
-        fillerJet[0] = jetPt;          // Axis 0 = any jet pT
-        fillerJet[1] = jetPhi;         // Axis 1 = any jet phi
-        fillerJet[2] = jetEta;         // Axis 2 = any jet eta
-        fillerJet[3] = centrality;     // Axis 3 = centrality
-        fillerJet[4] = jetFlavor;      // Axis 4 = flavor of the jet
+        fillerJet[0] = jetPt;             // Axis 0 = any jet pT
+        fillerJet[1] = jetPhi;            // Axis 1 = any jet phi
+        fillerJet[2] = jetEta;            // Axis 2 = any jet eta
+        fillerJet[3] = centrality;        // Axis 3 = centrality
+        fillerJet[4] = jetFlavor;         // Axis 4 = flavor of the jet
+        fillerJet[5] = matchingJetExists; // Axis 5 = flag is matching jet exists
           
         fHistograms->fhInclusiveJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
 
@@ -653,6 +634,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         fillerJet[2] = leadingJetEta;      // Axis 2 = leading jet eta
         fillerJet[3] = centrality;         // Axis 3 = centrality
         fillerJet[4] = leadingJetFlavor;   // Axis 4 = flavor of the leading jet
+        fillerJet[5] = leadingJetMatch;    // Axis 5 = flag if matching jet exists
           
         fHistograms->fhLeadingJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
 
@@ -717,8 +699,8 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         smearingFactor = GetSmearingFactor(reconstructedJetPt, reconstructedJetEta, centrality);
         reconstructedJetPt = reconstructedJetPt * fRng->Gaus(1,smearingFactor);
 
-        // Define index for jet flavor using algoritm: [-6,-1] U [1,6] -> kQuark, 21 -> kGluon, anything else -> -1
-        jetFlavor = -1;
+        // Define index for jet flavor using algoritm: [-6,-1] U [1,6] -> kQuark, 21 -> kGluon, anything else -> kUndetermined
+        jetFlavor = JetBackgroundHistograms::kUndetermined;
         if(partonFlavor >= -6 && partonFlavor <= 6 && partonFlavor != 0) jetFlavor = JetBackgroundHistograms::kQuark;
         if(partonFlavor == 21) jetFlavor = JetBackgroundHistograms::kGluon;
 
@@ -748,15 +730,6 @@ void JetBackgroundAnalyzer::RunAnalysis(){
     
     // Close the input files after the event has been read
     inputFile->Close();
-    
-    // Write some debug messages if prompted
-    if(fDebugLevel > 1){
-      if(fMatchJets == 1){
-        cout << "There were " << matchedCounter << " matched jets." << endl;
-        cout << "There were " << unmatchedCounter << " unmatched jets." << endl;
-        cout << "Too large pT gap between matched jets in " << matchRejectedDueToPtCounter << " pairs." << endl;
-      }
-    }
     
   } // File loop
   

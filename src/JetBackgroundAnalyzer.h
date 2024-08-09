@@ -71,7 +71,6 @@ public:
   // Analyzed data and forest types
   Int_t fJetType;                    // Type of jets used for analysis. 0 = Reconstructed jets, 1 = Generator level jets
   Int_t fJetSubtraction;             // Background subtraction algorithm. 0 = Calo jets with PU, 1 = PF jets with CS, 2 = PF jets with flow CS 
-  Int_t fMatchJets;                  // Jet matching flag. 0 = Do not match jets, 1 = Match jets, 2 = Anti-match jets
   Int_t fDebugLevel;                 // Amount of debug messages printed to console
   
   // Weights for filling the MC histograms

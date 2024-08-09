@@ -529,9 +529,8 @@ void MonteCarloForestReader::Initialize(){
   fJetTree->SetBranchAddress("refeta",&fJetRefEtaArray,&fJetRefEtaBranch);
   fJetTree->SetBranchStatus("refphi",1);
   fJetTree->SetBranchAddress("refphi",&fJetRefPhiArray,&fJetRefPhiBranch);
-  // TODO: In new files, this should be matchedPartonFlavor
-  fJetTree->SetBranchStatus("refparton_flavorForB",1);
-  fJetTree->SetBranchAddress("refparton_flavorForB",&fJetRefFlavorArray,&fJetRefFlavorBranch);
+  fJetTree->SetBranchStatus("matchedPartonFlavor",1);
+  fJetTree->SetBranchAddress("matchedPartonFlavor",&fJetRefFlavorArray,&fJetRefFlavorBranch);
 
   fJetTree->SetBranchStatus("genpt",1);
   fJetTree->SetBranchAddress("genpt",&fGenJetPtArray,&fGenJetPtBranch);
@@ -1167,7 +1166,7 @@ Int_t MonteCarloForestReader::GetGenJetFlavor(Int_t iJet) const{
   // Find the index of the matching reconstructed jet
   Int_t matchingIndex = GetMatchingRecoIndex(iJet);
   
-  // If we did not find macth, something went wrong. Return -999
+  // If we did not find match, something went wrong. Return -999
   if(matchingIndex == -1) return -999;
   
   // Return the matching parton flavor
