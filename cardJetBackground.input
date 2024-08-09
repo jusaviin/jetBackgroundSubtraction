@@ -8,7 +8,6 @@ MaxParticleEtaEventPlane 2 # Maximum eta for particles included in the event pla
 MaxParticlePtEventPlane 5  # Maximum pT for particles included in the event plane calculation
 
 # Cuts for jets
-MatchJets 0 # 0 = Do not match jets. 1 = Match generator level jets with reconstructed jets. 2 = Anti-match jets
 JetType 0                  # 0 = Reconstructed jets, 1 = Generator level jets
 JetSubtraction 2           # 0 = Calo PU jets, 1 = csPF jets, 2 = flowPuCsPF jets 
 JetAxis 1                  # 0 = E-scheme axis, 1 = WTA axis
@@ -27,7 +26,6 @@ HighPtHatCut 1000   # Maximum accepted pT hat
 # Binning for THnSparses
 CentralityBinEdges  4 14 34 54 94  # Centrality binning
 JetPtBinEdges       80 100 120 140 160 180 200 300 500 5020 # Jet pT binning
-TrackPtBinEdges     0.7 1 1.5 2 2.5 3 3.5 4 300         # Track pT binning
 PtHatBinEdges       0 30 50 80 120 170 220 280 370 460  # pT hat binning
 
 # Debug
