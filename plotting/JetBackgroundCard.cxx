@@ -74,11 +74,6 @@ int JetBackgroundCard::GetNCentralityBins() const{
   return GetNBins(kCentralityBinEdges);
 }
 
-// Get the number of track pT bins
-int JetBackgroundCard::GetNTrackPtBins() const{
-  return GetNBins(kTrackPtBinEdges);
-}
-
 // Get the number of jet pT bins
 int JetBackgroundCard::GetNJetPtBins() const{
   return GetNBins(kJetPtBinEdges);
@@ -108,11 +103,6 @@ int JetBackgroundCard::GetBinIndex(const int index, const double value) const{
 // Get the bin index for a given centrality value
 int JetBackgroundCard::GetBinIndexCentrality(const double value) const{
   return GetBinIndex(kCentralityBinEdges,value);
-}
-
-// Get the bin index for a given track pT value
-int JetBackgroundCard::GetBinIndexTrackPt(const double value) const{
-  return GetBinIndex(kTrackPtBinEdges,value);
 }
 
 // Get the bin index for a given jet pT
@@ -160,16 +150,6 @@ int JetBackgroundCard::FindBinIndexCentrality(const std::pair<double,double> bin
   return FindBinIndex(kCentralityBinEdges,binBorders.first,binBorders.second);
 }
 
-// Find if a track pT bin with given borders exists and return its index
-int JetBackgroundCard::FindBinIndexTrackPt(const double lowBorder, const double highBorder) const{
-  return FindBinIndex(kTrackPtBinEdges,lowBorder,highBorder);
-}
-
-// Find if a track pT bin with given borders exists and return its index
-int JetBackgroundCard::FindBinIndexTrackPt(const std::pair<double,double> binBorders) const{
-  return FindBinIndex(kTrackPtBinEdges,binBorders.first,binBorders.second);
-}
-
 // Find if a jet pT bin with given borders exists and return its index
 int JetBackgroundCard::FindBinIndexJetPt(const double lowBorder, const double highBorder) const{
   return FindBinIndex(kJetPtBinEdges,lowBorder,highBorder);
@@ -197,11 +177,6 @@ double JetBackgroundCard::GetLowBinBorderCentrality(const int iBin) const{
   return GetLowBinBorder(kCentralityBinEdges,iBin);
 }
 
-// Get the low border of i:th track pT bin
-double JetBackgroundCard::GetLowBinBorderTrackPt(const int iBin) const{
-  return GetLowBinBorder(kTrackPtBinEdges,iBin);
-}
-
 // Get the low border of i:th jet pT bin
 double JetBackgroundCard::GetLowBinBorderJetPt(const int iBin) const{
   return GetLowBinBorder(kJetPtBinEdges,iBin);
@@ -224,11 +199,6 @@ double JetBackgroundCard::GetHighBinBorderCentrality(const int iBin) const{
   return GetHighBinBorder(kCentralityBinEdges,iBin);
 }
 
-// Get the high border of i:th track pT bin
-double JetBackgroundCard::GetHighBinBorderTrackPt(const int iBin) const{
-  return GetHighBinBorder(kTrackPtBinEdges,iBin);
-}
-
 // Get the high border of i:th jet pT bin
 double JetBackgroundCard::GetHighBinBorderJetPt(const int iBin) const{
   return GetHighBinBorder(kJetPtBinEdges,iBin);
@@ -237,11 +207,6 @@ double JetBackgroundCard::GetHighBinBorderJetPt(const int iBin) const{
 // Get the bin borders of the i:th centrality bin
 std::pair<double,double> JetBackgroundCard::GetBinBordersCentrality(const int iBin) const{
   return std::make_pair(GetLowBinBorderCentrality(iBin), GetHighBinBorderCentrality(iBin)); 
-}
-
-// Get the bin borders of the i:th track pT bin
-std::pair<double,double> JetBackgroundCard::GetBinBordersTrackPt(const int iBin) const{
-  return std::make_pair(GetLowBinBorderTrackPt(iBin), GetHighBinBorderTrackPt(iBin)); 
 }
 
 // Get the bin borders of the i:th jet pT bin

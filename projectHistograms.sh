@@ -15,10 +15,10 @@ OUTPUT=$2   # Name of the output file
 GITHASH=`git rev-parse HEAD`
 
 # Replace the placeholder string in the projection code by git hash
-sed -i '' 's/GITHASHHERE/'${GITHASH}'/' plotting/getJetEventPlaneCorrelationHistograms.C
+sed -i '' 's/GITHASHHERE/'${GITHASH}'/' plotting/projectJetBackgroundHistograms.C
 
 # Project all histograms
-root -l -b -q 'plotting/getJetEventPlaneCorrelationHistograms.C("'${INPUT}'","'${OUTPUT}'")'
+root -l -b -q 'plotting/projectJetBackgroundHistograms.C("'${INPUT}'","'${OUTPUT}'",15)'
 
 # Put the placeholder string back to the histogram projection file
-sed -i '' 's/'${GITHASH}'/GITHASHHERE/' plotting/getJetEventPlaneCorrelationHistograms.C
+sed -i '' 's/'${GITHASH}'/GITHASHHERE/' plotting/projectJetBackgroundHistograms.C

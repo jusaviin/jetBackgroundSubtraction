@@ -1,6 +1,7 @@
 #include "AlgorithmLibrary.h" R__LOAD_LIBRARY(plotting/DrawingClasses.so)
 #include "JDrawer.h"
 #include "JetBackgroundCard.h"
+#include "JetBackgroundHistogramManager.h"
 
 /*
  * Macro for drawing jet-event plane correlation histograms and doing a flow fit to them
@@ -101,9 +102,9 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   // Default centrality bins: 4, 14, 34, 54, 94
   std::vector<std::pair<int,int>> analyzedCentralityBin;
   analyzedCentralityBin.push_back(std::make_pair(4,14));
-  //analyzedCentralityBin.push_back(std::make_pair(14,34));
-  //analyzedCentralityBin.push_back(std::make_pair(34,54));
-  //analyzedCentralityBin.push_back(std::make_pair(54,94));
+  analyzedCentralityBin.push_back(std::make_pair(14,34));
+  analyzedCentralityBin.push_back(std::make_pair(34,54));
+  analyzedCentralityBin.push_back(std::make_pair(54,94));
 
   // To use the whole region defined in the files, set the second bin to 0
   // Default jet pT bins: 80, 100, 120, 140, 160, 180, 200, 300, 500, 5020
@@ -143,9 +144,25 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
       } // Jet pT loop
     } // Centrality loop
   } // File loop
+
+  // Initialize histogram managers from each input file
+  std::vector<JetBackgroundHistogramManager*> histograms;
+  JetBackgroundHistogramManager* manager;
+
+  for(auto thisFile : inputFile){
+    manager = new JetBackgroundHistogramManager(thisFile);
+
+    // Load the jet-event plane correlation histograms
+    manager->SetLoadJetEventPlaneHistograms(true);
+    manager->LoadProcessedHistograms();
+
+    // Add the histogram manager with properly loaded histograms to the manager of histogram managers
+    histograms.push_back(manager);
+  }
+
   
 
-  // Read the histograms from the data files
+  // Read the histograms from the histogram managers
   int iCentrality, iCentralityMatched;
   int iJetPt, iJetPtMatched;
   for(int iFile = 0; iFile < nFiles; iFile++){
@@ -154,11 +171,11 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
       iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
       for(auto jetPtBin : analyzedJetPtBin){
         if(jetPtBin.second == 0){
-          hJetEventPlane[iFile][iCentrality][nJetPtBins] = (TH1D*) inputFile.at(iFile)->Get(Form("%sEventPlaneOrder%d_C%d", jetTypeString[iJetType].Data(), eventPlaneOrder, iCentralityMatched));
+          hJetEventPlane[iFile][iCentrality][nJetPtBins] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, iJetType, iCentralityMatched);
         } else {
           iJetPt = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
           iJetPtMatched = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-          hJetEventPlane[iFile][iCentrality][iJetPt] = (TH1D*) inputFile.at(iFile)->Get(Form("%sEventPlaneOrder%d_C%dJ%d", jetTypeString[iJetType].Data(), eventPlaneOrder, iCentralityMatched, iJetPtMatched));
+          hJetEventPlane[iFile][iCentrality][iJetPt] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, iJetType, iCentralityMatched, iJetPtMatched);
         }
       } // Jet pT loop 
     } // Centrality loop

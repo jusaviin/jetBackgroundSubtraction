@@ -15,7 +15,7 @@ CXXFLAGS  += $(INCS)
 #HDRSDICT = SplitCanvas.h
 # HDRS += $(HDRSDICT) ... nanoDict.h
 
-HDRS += AlgorithmLibrary.h JetBackgroundCard.h
+HDRS += AlgorithmLibrary.h JetBackgroundCard.h JetBackgroundHistogramManager.h
 
 SRCS = $(HDRS:.h=.cxx)
 OBJS = $(HDRS:.h=.o)
