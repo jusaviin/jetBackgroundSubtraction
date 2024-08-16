@@ -2,6 +2,15 @@
 *.[oa]
 *.so
 
+# Ignore the executable created by Makefile
+jetBackgroundAnalysis
+jetBackgroundAnalysis.dSYM
+
+# Ignore text files that make file lists
+comp*.txt
+list_oldForest.txt
+myList.txt
+
 # Ignore all root files
 *.root
 
