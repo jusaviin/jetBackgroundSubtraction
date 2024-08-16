@@ -8,6 +8,7 @@
 
 // C++ includes
 #include <iostream>
+#include <fstream>
 #include <tuple>
 #include <chrono>
 #include <ctime>
@@ -21,6 +22,9 @@
 #include <TF2.h>
 #include <TMath.h>
 #include <TAxis.h>
+#include <TFile.h>
+#include <TObjArray.h>
+#include <TObjString.h>
 
 class AlgorithmLibrary{
   
@@ -44,6 +48,7 @@ public:
   void TransformToAbsoluteUncertainty(TH1D* transformedHistogram, TH1D* absoluteScaleHistogram, const bool centerAtOne = false);
   void SuppressSingleBinFluctuations(TH1D* fluctuatingHistogram, const double lowRange, const double highRange, const double threshold, const double suppressionLevel);
   TF1* FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool onlyNearSideFit = false, const char* fitOption = ""); // Do a Fourier fit to the provided deltaPhi histogram
+  std::tuple<std::vector<TFile*>, std::vector<TString>, std::vector<TString>, TString> ReadFileList(TString inputFileList); // Read a list of specifically formatted files
 
   TString GetToday(); // Getter for today's date
   

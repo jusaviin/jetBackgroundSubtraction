@@ -19,6 +19,7 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager() :
   fLoadJets(false),
   fLoad2DHistograms(false),
   fLoadJetPtClosureHistograms(false),
+  fLoadJetPtResponseMatrix(false),
   fLoadJetEventPlaneCorrelationHistograms(false),
   fFirstLoadedCentralityBin(0),
   fLastLoadedCentralityBin(1),
@@ -74,6 +75,9 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager() :
         } // Jet phi bin loop 
       } // Jet eta bin loop
     } // Gen jet pT loop
+
+    // Jet pT response matrix
+    fhJetPtResponseMatrix[iCentrality] = NULL;
 
     // Jet-event plane correlation histograms
     for(int iJetType = 0; iJetType < knJetTypes; iJetType++){
@@ -163,6 +167,7 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager(const JetBackground
   fLoadJets(in.fLoadJets),
   fLoad2DHistograms(in.fLoad2DHistograms),
   fLoadJetPtClosureHistograms(in.fLoadJetPtClosureHistograms),
+  fLoadJetPtResponseMatrix(in.fLoadJetPtResponseMatrix),
   fLoadJetEventPlaneCorrelationHistograms(in.fLoadJetEventPlaneCorrelationHistograms),
   fFirstLoadedCentralityBin(in.fFirstLoadedCentralityBin),
   fLastLoadedCentralityBin(in.fLastLoadedCentralityBin),
@@ -214,6 +219,9 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager(const JetBackground
       } // Jet eta bin loop
     } // Gen jet pT loop
 
+    // Jet pT response matrix
+    fhJetPtResponseMatrix[iCentrality] = in.fhJetPtResponseMatrix[iCentrality];
+
     // Jet-event plane correlation histograms
     for(int iJetType = 0; iJetType < knJetTypes; iJetType++){
       for(int iJetPt = 0; iJetPt < kMaxJetPtBins; iJetPt++){
@@ -256,6 +264,9 @@ void JetBackgroundHistogramManager::LoadHistograms(){
 
   // Load jet pT closure histograms
   LoadJetPtClosureHistograms();
+
+  // Load jet pT response matrices
+  LoadJetPtResponseMatrix();
 
   // Load the jet-event plane correlation histograms
   LoadJetEventPlaneHistograms();
@@ -495,6 +506,57 @@ void JetBackgroundHistogramManager::LoadJetPtClosureHistograms(){
 }
 
 /*
+ * Loader for jet pT response matrix
+ *
+ * THnSparse for closure histograms is used for this:
+ *
+ *   Histogram name: jetPtClosure
+ *
+ *     Axis index                  Content of axis
+ * -----------------------------------------------------------
+ *       Axis 0              Matched generator level jet pT
+ *       Axis 1               Matched reconstructed jet pT
+ *       Axis 2                         Jet eta
+ *       Axis 3                       Centrality
+ *       Axis 4                      Quark / gluon
+ *       Axis 5             Matched reco to gen jet pT ratio
+ *       Axis 6                         Jet phi
+ */
+void JetBackgroundHistogramManager::LoadJetPtResponseMatrix(){
+  
+  if(!fLoadJetPtResponseMatrix) return; // Do not load the histograms if they are not selected for loading
+  
+  // Define arrays to help find the histograms
+  int axisIndices[1] = {0};
+  int lowLimits[1] = {0};
+  int highLimits[1] = {0};
+  int nRestrictionAxes = 1;
+  
+  // Define helper variables
+  int duplicateRemoverCentrality = -1;
+  int lowerCentralityBin = 0;
+  int higherCentralityBin = 0;
+
+  // Find the histogram array from which the projections are made
+  THnSparseD* histogramArray = (THnSparseD*)fInputFile->Get("jetPtClosure");
+
+  // Load all the histograms from the file
+  for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
+        
+    // Select the bin indices
+    lowerCentralityBin = fCentralityBinIndices[iCentrality];
+    higherCentralityBin = fCentralityBinIndices[iCentrality+1]+duplicateRemoverCentrality;
+        
+    // Setup centrality axis restrictions
+    axisIndices[0] = 3; lowLimits[0] = lowerCentralityBin; highLimits[0] = higherCentralityBin; // Centrality
+
+    // Project the response matrix from the closure histogram
+    fhJetPtResponseMatrix[iCentrality] = FindHistogram2D(histogramArray,1,0,nRestrictionAxes,axisIndices,lowLimits,highLimits,false);
+        
+  } // Centrality loop
+}
+
+/*
  * Loader for jet-event plane correlation histograms
  *
  * THnSparse for jet-event plane correlation:
@@ -719,6 +781,9 @@ void JetBackgroundHistogramManager::Write(const char* fileName, const char* file
   // Write the jet pT closure histograms to the output file
   WriteClosureHistograms();
 
+  // Write the jet pT response matrices to the output file
+  WriteJetPtResponseMatrix(); 
+
   // Write the jet-event plane correlation histograms to the output file
   WriteJetEventPlaneHistograms();
   
@@ -830,6 +895,40 @@ void JetBackgroundHistogramManager::WriteClosureHistograms(){
     gDirectory->cd("../");
     
   } // Writing jet pT closure histograms
+  
+}
+
+/*
+ * Write the jet pT response matrices to the file that is currently open
+ */
+void JetBackgroundHistogramManager::WriteJetPtResponseMatrix(){
+  
+  // Helper variable for histogram naming
+  TString histogramNamer;
+  
+  // Only write the jet pT closure histograms if they are previously loaded
+  if(fLoadJetPtResponseMatrix){
+    
+    // Create a directory for the histograms if it does not already exist
+    histogramNamer = "jetPtResponseMatrix";
+    if(!gDirectory->GetDirectory(histogramNamer.Data())) gDirectory->mkdir(histogramNamer.Data());
+    gDirectory->cd(histogramNamer.Data());
+
+    // Centrality loop
+    for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
+
+      // Only write histograms that are non-NULL
+      if(fhJetPtResponseMatrix[iCentrality]) {
+        histogramNamer = Form("jetPtResponseMatrix_C%d", iCentrality);
+        fhJetPtResponseMatrix[iCentrality]->Write(histogramNamer.Data(), TObject::kOverwrite);
+      }
+
+    }  // Centrality loop
+
+    // Return back to main directory
+    gDirectory->cd("../");
+    
+  } // Writing jet pT response matrices
   
 }
 
@@ -960,6 +1059,18 @@ void JetBackgroundHistogramManager::LoadProcessedHistograms(){
     gDirectory->cd("../");
     
   } // Opening jet pT closure histograms
+
+  // Load the jet pT response matrices from a processed file
+  if(fLoadJetPtResponseMatrix){
+
+    // Centrality loop
+    for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
+
+      histogramNamer = Form("jetPtResponseMatrix/jetPtResponseMatrix_C%d", iCentrality);
+      fhJetPtResponseMatrix[iCentrality] = (TH2D*)fInputFile->Get(histogramNamer.Data());
+
+    }  // Centrality loop
+  } // Loading jet pT response matrices
 
   // Load the jet-event plane correlation histograms from the processed file
   if(fLoadJetEventPlaneCorrelationHistograms){
@@ -1109,6 +1220,11 @@ void JetBackgroundHistogramManager::SetLoad2DHistograms(const bool loadOrNot){
 // Setter for loading jet pT closure histograms
 void JetBackgroundHistogramManager::SetLoadJetPtClosureHistograms(const bool loadOrNot){
   fLoadJetPtClosureHistograms = loadOrNot;
+}
+
+// Setter for loading jet pT response matrix
+void JetBackgroundHistogramManager::SetLoadJetPtResponseMatrix(const bool loadOrNot){
+  fLoadJetPtResponseMatrix = loadOrNot;
 }
 
 // Setter for loading jet-event plane correlation histograms
@@ -1271,6 +1387,11 @@ TH2D* JetBackgroundHistogramManager::GetHistogramLeadingJetEtaPhi(int iCentralit
 // Getter for jet pT closure histograms
 TH1D* JetBackgroundHistogramManager::GetHistogramJetPtClosure(const int iGenPtBin, const int iEtaBin, const int iPhiBin, const int iCentrality, const int iParton) const{
   return fhJetPtClosure[iGenPtBin][iEtaBin][iPhiBin][iCentrality][iParton];
+}
+
+// Getter for jet pT response matrix
+TH2D* JetBackgroundHistogramManager::GetHistogramJetPtResponseMatrix(const int iCentrality) const{
+  return fhJetPtResponseMatrix[iCentrality];
 }
 
 // Getter for jet-event plane histograms

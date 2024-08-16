@@ -585,3 +585,76 @@ TF1* AlgorithmLibrary::FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool o
   // Return the fitted distribution
   return fourier;
 }
+
+/*
+ * Read a list of specifically formatted files
+ *  Arguments: TString inputFileList = File containing a file name of the specifically formatted filei n each line
+ *
+ *  return: Tuple with vectors of files, legend comments and save comment
+ */
+std::tuple<std::vector<TFile*>, std::vector<TString>, std::vector<TString>, TString> AlgorithmLibrary::ReadFileList(TString inputFileList){
+
+  // Define vectors for input files and legend string corresponding to said files
+  std::vector<TFile*> inputFile;
+  std::vector<TString> jetLegendString;
+  std::vector<TString> saveNameString;
+  TString saveComment;
+
+  // Set up the input file list for reading
+  std::ifstream file_stream(inputFileList);
+  std::string line;
+  TObjArray* lineContents;
+  TObjString* lineItem;
+
+  bool firstLine = true;
+
+  // Open the input file list for reading
+  if( file_stream.is_open() ) {
+    
+    // Loop over the lines in the input file list
+    while( !file_stream.eof() ) {
+      getline(file_stream, line);
+      TString lineString(line);
+      
+      // If the line is non-empty, extract the file name and legend comment from it
+      if( lineString.CompareTo("", TString::kExact) != 0 ) {
+
+        if(firstLine){
+          saveComment = lineString;
+          firstLine = false;
+        } else {
+          // Other lines define the files that are compared, and a comment given to them in legend
+          lineContents = lineString.Tokenize("&"); // Tokenize the string from '&' character
+
+          // It is assumed that the line content before first '&' character gives the file name
+          lineItem = (TObjString*)lineContents->At(0);
+          inputFile.push_back(TFile::Open(lineItem->String()));
+
+          // It is assumed that the line content between first and second '&' character gives the legend comment
+          lineItem = (TObjString*)lineContents->At(1);
+          jetLegendString.push_back(lineItem->String().Strip(TString::kBoth, ' '));
+
+          // It is assumed that the line content after the second '&' character gives the save comment is only this figure is saved
+          lineItem = (TObjString*)lineContents->At(2);
+          saveNameString.push_back(lineItem->String().Strip(TString::kBoth, ' '));
+
+          // Note: Strip command removes empty space from the beginning and ned of the string
+        }
+      } // Empty line if
+      
+    } // Loop over lines in the file
+    
+  // If cannot read the file, give error and end program
+  } else {
+    std::cout << "Error, could not open " << inputFileList.Data() << " for reading" << std::endl;
+    std::cout << "Please check the file name!" << std::endl;
+    inputFile.push_back(NULL);
+    jetLegendString.push_back("ERROR");
+    saveNameString.push_back("ERROR");
+    saveComment = "ERROR";
+  }
+
+  // Collect the information to a tuple and return it
+  return std::make_tuple(inputFile, jetLegendString, saveNameString, saveComment);
+
+}

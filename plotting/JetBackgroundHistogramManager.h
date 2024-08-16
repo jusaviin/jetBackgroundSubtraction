@@ -70,6 +70,7 @@ public:
   // Setter for loading additional histograms
   void SetLoad2DHistograms(const bool loadOrNot);           // Setter for loading two-dimensional histograms
   void SetLoadJetPtClosureHistograms(const bool loadOrNot); // Setter for loading jet pT closure histograms
+  void SetLoadJetPtResponseMatrix(const bool loadOrNot);    // Setter for loading jet pT response matrix
 
   // Setter for jet-event plane correlation histograms
   void SetLoadJetEventPlaneHistograms(const bool loadOrNot);
@@ -113,6 +114,7 @@ public:
 
   // Getter for jet pT closure histograms
   TH1D* GetHistogramJetPtClosure(const int iGenPtBin, const int iEtaBin, const int iPhiBin, const int iCentrality, const int iClosureParticle) const; // Jet pT closure
+  TH2D* GetHistogramJetPtResponseMatrix(const int iCentrality) const; // Jet pT response matrix
 
   // Getter for jet-event plane histograms
   TH1D* GetHistogramJetEventPlane(int iOrder, int iJetType, int iCentrality, int iJetPt = -1);
@@ -145,6 +147,7 @@ private:
   bool fLoadJets;                               // Load the jet histograms
   bool fLoad2DHistograms;                       // Load also two-dimensional (eta,phi) histograms
   bool fLoadJetPtClosureHistograms;             // Load jet pT closure histograms
+  bool fLoadJetPtResponseMatrix;                // Loas the jet pT response matrix
   bool fLoadJetEventPlaneCorrelationHistograms; // Load jet-event plane correlation histograms
   
   // ==============================================
@@ -187,6 +190,7 @@ private:
 
   // Histograms for jet pT closure
   TH1D* fhJetPtClosure[knGenJetPtBins+1][knJetEtaBins+1][knJetPhiBins+1][kMaxCentralityBins][JetBackgroundHistograms::knInitialPartonTypes];  // Jet pT closure
+  TH2D* fhJetPtResponseMatrix[kMaxCentralityBins]; // Jet pT response matrix
 
   // Histograms for jet-event plane correlation
   TH1D* fhJetEventPlane[knJetTypes][JetBackgroundHistograms::knEventPlanes][kMaxCentralityBins][kMaxJetPtBins];
@@ -207,6 +211,7 @@ private:
   // Loaders for different groups of histograms
   void LoadJetHistograms(); // Loader for jet histograms
   void LoadJetPtClosureHistograms(); // Loader for jet pT closure histograms
+  void LoadJetPtResponseMatrix();    // Loader for the jet pT response matrices
   void LoadJetEventPlaneHistograms(); // Loader for jet-event plane correlation histograms
   
   // Generic setter for bin indice and borders
@@ -219,6 +224,7 @@ private:
   // Methods for histogram writing
   void WriteJetHistograms();            // Write the jet histograms to the file that is currently open
   void WriteClosureHistograms();        // Write the closure histograms to the file that is currently open
+  void WriteJetPtResponseMatrix();      // Write the jet pT response matrices to the file that is currently open
   void WriteJetEventPlaneHistograms();  // Write the jet-event plane correlation histograms to the file that is currently open
   
 };

@@ -69,7 +69,7 @@ private:
   int fCanvasesInOneRow;     // Number of canvases in a row before a new row is started
   
   // Handles needed for custom canvas creation
-  TCanvas *fCanvas;       // If only a custom canvas is drawn, we need to keep on handle on that
+  TCanvas* fCanvas;       // If only a custom canvas is drawn, we need to keep on handle on that
   TPad* fSinglePad;       // Single pad for single canvas
   TPad* fUpperSplitPad;   // Upper pad in split canvas
   TPad* fLowerSplitPad;   // Lower pad in split canvas

@@ -13,53 +13,18 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   // Define vectors for input files and legend string corresponding to said files
   std::vector<TFile*> inputFile;
   std::vector<TString> jetLegendString;
+  std::vector<TString> saveNameString;
   TString saveComment;
+  AlgorithmLibrary *fitter = new AlgorithmLibrary();
 
   // If a text file is provided as input, read the input files and legend string from there. Otherwise use manually defined ones
   if(inputFileList.EndsWith(".txt")){
 
-    // Set up the input file list for reading
-    std::ifstream file_stream(inputFileList);
-    std::string line;
-    TObjArray* lineContents;
-    TObjString* lineItem;
+    std::tie(inputFile, jetLegendString, saveNameString, saveComment) = fitter->ReadFileList(inputFileList);
 
-    bool firstLine = true;
-
-    // Open the input file list for reading
-    if( file_stream.is_open() ) {
-    
-      // Loop over the lines in the input file list
-      while( !file_stream.eof() ) {
-        getline(file_stream, line);
-        TString lineString(line);
-      
-        // If the line is non-empty, extract the file name and legend comment from it
-        if( lineString.CompareTo("", TString::kExact) != 0 ) {
-
-          if(firstLine){
-            saveComment = lineString;
-            firstLine = false;
-          } else {
-            // Other lines define the files that are compared, and a comment given to them in legend
-            lineContents = lineString.Tokenize("&"); // Tokenize the string from '&' character
-
-            // It is assumed that the line content before '|' character gives the file name
-            lineItem = (TObjString*)lineContents->At(0);
-            inputFile.push_back(TFile::Open(lineItem->String()));
-
-            // It is assumed taht the line content after '|' character gives the legend comment
-            lineItem = (TObjString*)lineContents->At(1);
-            jetLegendString.push_back(lineItem->String());
-          }
-        } // Empty line if
-      
-      } // Loop over lines in the file
-    
-    // If cannot read the file, give error and end program
-    } else {
-      std::cout << "Error, could not open " << inputFileList.Data() << " for reading" << std::endl;
-      std::cout << "Please check the file name! Will not run the code!" << std::endl;
+    // If there was an error in loading the files, exit the program
+    if(inputFile.at(0) == NULL){
+      cout << "File loading failed! Cannot execute the code." << endl;
       return;
     }
 
@@ -201,7 +166,6 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   
   
   // Do a fourier fit up to v4 to all histograms
-  AlgorithmLibrary *fitter = new AlgorithmLibrary();
   for(int iFile = 0; iFile < nFiles; iFile++){
     for(auto centralityBin : analyzedCentralityBin){
       for(auto jetPtBin : analyzedJetPtBin){
