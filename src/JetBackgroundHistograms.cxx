@@ -21,6 +21,12 @@ JetBackgroundHistograms::JetBackgroundHistograms() :
   fhCentralityWeighted(0),
   fhPtHat(0),
   fhPtHatWeighted(0),
+  fhPhiPythia(0),
+  fhPhiHydjet(0),
+  fhPhiPythiaPt(0),
+  fhPhiHydjetPt(0),
+  fhPhiPfCandidate(0),
+  fhPhiPfCandidatePt(0),
   fhInclusiveJet(0),
   fhLeadingJet(0),
   fhJetPtClosure(0),
@@ -46,6 +52,12 @@ JetBackgroundHistograms::JetBackgroundHistograms(ConfigurationCard* newCard) :
   fhCentralityWeighted(0),
   fhPtHat(0),
   fhPtHatWeighted(0),
+  fhPhiPythia(0),
+  fhPhiHydjet(0),
+  fhPhiPythiaPt(0),
+  fhPhiHydjetPt(0),
+  fhPhiPfCandidate(0),
+  fhPhiPfCandidatePt(0),
   fhInclusiveJet(0),
   fhLeadingJet(0),
   fhJetPtClosure(0),
@@ -70,6 +82,12 @@ JetBackgroundHistograms::JetBackgroundHistograms(const JetBackgroundHistograms& 
   fhCentralityWeighted(in.fhCentralityWeighted),
   fhPtHat(in.fhPtHat),
   fhPtHatWeighted(in.fhPtHatWeighted),
+  fhPhiPythia(in.fhPhiPythia),
+  fhPhiHydjet(in.fhPhiHydjet),
+  fhPhiPythiaPt(in.fhPhiPythiaPt),
+  fhPhiHydjetPt(in.fhPhiHydjetPt),
+  fhPhiPfCandidate(in.fhPhiPfCandidate),
+  fhPhiPfCandidatePt(in.fhPhiPfCandidatePt),
   fhInclusiveJet(in.fhInclusiveJet),
   fhLeadingJet(in.fhLeadingJet),
   fhJetPtClosure(in.fhJetPtClosure),
@@ -99,6 +117,12 @@ JetBackgroundHistograms& JetBackgroundHistograms::operator=(const JetBackgroundH
   fhCentralityWeighted = in.fhCentralityWeighted;
   fhPtHat = in.fhPtHat;
   fhPtHatWeighted = in.fhPtHatWeighted;
+  fhPhiPythia = in.fhPhiPythia;
+  fhPhiHydjet = in.fhPhiHydjet;
+  fhPhiPythiaPt = in.fhPhiPythiaPt;
+  fhPhiHydjetPt = in.fhPhiHydjetPt;
+  fhPhiPfCandidate = in.fhPhiPfCandidate;
+  fhPhiPfCandidatePt = in.fhPhiPfCandidatePt;
   fhInclusiveJet = in.fhInclusiveJet;
   fhLeadingJet = in.fhLeadingJet;
   fhJetPtClosure = in.fhJetPtClosure;
@@ -124,6 +148,12 @@ JetBackgroundHistograms::~JetBackgroundHistograms(){
   delete fhCentralityWeighted;
   delete fhPtHat;
   delete fhPtHatWeighted;
+  delete fhPhiPythia;
+  delete fhPhiHydjet;
+  delete fhPhiPythiaPt;
+  delete fhPhiHydjetPt;
+  delete fhPhiPfCandidate;
+  delete fhPhiPfCandidatePt;
   delete fhInclusiveJet;
   delete fhLeadingJet;
   delete fhJetPtClosure;
@@ -251,6 +281,12 @@ void JetBackgroundHistograms::CreateHistograms(){
   fhCentralityWeighted = new TH1F("centralityWeighted","centralityWeighted",nCentralityBins,minCentrality,maxCentrality); fhCentralityWeighted->Sumw2();
   fhPtHat = new TH1F("pthat","pthat",nPtHatBins,ptHatBins); fhPtHat->Sumw2();
   fhPtHatWeighted = new TH1F("pthatWeighted","pthatWeighted",nFinePtHatBins,minPtHat,maxPtHat); fhPtHatWeighted->Sumw2();
+  fhPhiPythia = new TH1D("phiPythia","phiPythia", nPhiBins, minPhi, maxPhi); fhPhiPythia->Sumw2();
+  fhPhiHydjet = new TH1D("phiHydjet","phiHydjet", nPhiBins, minPhi, maxPhi); fhPhiHydjet->Sumw2();
+  fhPhiPythiaPt = new TH1D("phiPythiaPt","phiPythiaPt", nPhiBins, minPhi, maxPhi); fhPhiPythiaPt->Sumw2();
+  fhPhiHydjetPt = new TH1D("phiHydjetPt","phiHydjetPt", nPhiBins, minPhi, maxPhi); fhPhiHydjetPt->Sumw2();
+  fhPhiPfCandidate = new TH1D("phiPfCandidate","phiPfCandidate", nPhiBins, minPhi, maxPhi); fhPhiPfCandidate->Sumw2();
+  fhPhiPfCandidatePt = new TH1D("phiPfCandidatePt","phiPfCandidatePt", nPhiBins, minPhi, maxPhi); fhPhiPfCandidatePt->Sumw2();
   
   // For the event histogram, label each bin corresponding to an event cut
   for(Int_t i = 0; i < knEventTypes; i++){
@@ -384,6 +420,12 @@ void JetBackgroundHistograms::Write() const{
   fhCentralityWeighted->Write();
   fhPtHat->Write();
   fhPtHatWeighted->Write();
+  fhPhiPythia->Write();
+  fhPhiHydjet->Write();
+  fhPhiPythiaPt->Write();
+  fhPhiHydjetPt->Write();
+  fhPhiPfCandidate->Write();
+  fhPhiPfCandidatePt->Write();
   fhInclusiveJet->Write();
   fhLeadingJet->Write();
   fhJetPtClosure->Write();

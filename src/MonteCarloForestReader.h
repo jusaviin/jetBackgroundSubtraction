@@ -109,6 +109,20 @@ public:
   Int_t GetJetFlavor(Int_t jetType, Int_t iJet) const; // Getter for the jet flavor for input jet type
   Int_t GetRecoJetFlavor(Int_t iJet) const;            // Getter for reconstructed jet flavor
   Int_t GetGenJetFlavor(Int_t iJet) const;             // Getter for generator level jet flavor
+
+  // Getter for flow fit parameters
+  std::vector<float>* GetFlowFitVn() const;            // Getter for all vn components in the flow fit
+  std::vector<float>* GetFlowFitEventPlane() const;    // Getter for all event plane angles in the flow fit
+  Int_t GetFlowFitFirstComponent() const;              // Getter for the first component of the flow fit
+  Float_t GetFlowFitAmplitude() const;                 // Getter for the amplitude of the flow fit
+  Float_t GetFlowFitQuality() const;                   // Getter for quality measure of the flow fit
+
+  // Getters for leaves in the particle flow candidate tree
+  Int_t GetParticleFlowCandidateId(Int_t iCandidate) const;      // Getter for particle flow candidate ID
+  Float_t GetParticleFlowCandidatePt(Int_t iCandidate) const;    // Getter for particle flow candidate pT
+  Float_t GetParticleFlowCandidatePhi(Int_t iCandidate) const;   // Getter for particle flow candidate phi
+  Float_t GetParticleFlowCandidateEta(Int_t iCandidate) const;   // Getter for particle flow candidate eta
+  Int_t GetNParticleFlowCandidates() const;                      // Getter for number of particle flow candidates
   
   // Getters for leaves in track tree
   Int_t GetNTracks() const;                                  // Getter for number of tracks
@@ -145,11 +159,12 @@ private:
   Int_t fJetAxis;         // Jet axis used for the jets. 0 = Anti-kT, 1 = WTA
   
   // Trees in the forest
-  TTree* fHeavyIonTree;    // Tree for heavy ion event information
-  TTree* fSkimTree;        // Tree for event cuts
-  TTree* fJetTree;         // Tree for jet information
-  TTree* fTrackTree;       // Tree for reconstructed tracks
-  TTree* fGenParticleTree; // Tree for generator level particles
+  TTree* fHeavyIonTree;              // Tree for heavy ion event information
+  TTree* fSkimTree;                  // Tree for event cuts
+  TTree* fJetTree;                   // Tree for jet information
+  TTree* fTrackTree;                 // Tree for reconstructed tracks
+  TTree* fGenParticleTree;           // Tree for generator level particles
+  TTree* fParticleFlowCandidateTree; // Tree for particle flow candidates
 
   // Branches for heavy ion tree
   TBranch* fHiVzBranch;                   // Branch for vertex z-position
@@ -183,6 +198,18 @@ private:
   TBranch* fGenJetWTAPhiBranch;  // Branch for generator level jet WTA phi
   TBranch* fGenJetEtaBranch;     // Branch for generator level jet eta
   TBranch* fGenJetWTAEtaBranch;  // Branch for generator level jet eta
+
+  TBranch* fFlowFitVnBranch;             // Branch for vn from the flow fit
+  TBranch* fFlowFitEventPlaneBranch;     // Branch for event plane angles from the flow fit
+  TBranch* fFlowFitFirstComponentBranch; // Branch for first fitted flow component in the flow fit
+  TBranch* fFlowFitAmplitudeBranch;      // Branch for the amplitude of the flow fit
+  TBranch* fFlowFitQualityBranch;        // Branch for fit quality from the flow fit
+
+  // Branches for particle flow candidate tree
+  TBranch *fParticleFlowCandidateIdBranch;    // Branch for particle flow candidate ID
+  TBranch *fParticleFlowCandidatePtBranch;    // Branch for particle flow candidate pT
+  TBranch *fParticleFlowCandidatePhiBranch;   // Branch for particle flow candidate phi
+  TBranch *fParticleFlowCandidateEtaBranch;   // Branch for particle flow candidate eta
 
   // Branches for track tree
   TBranch* fnTracksBranch;                     // Branch for number of tracks
@@ -243,6 +270,20 @@ private:
   Float_t fGenJetWTAPhiArray[fnMaxJet] = {0};   // WTA phis of the generator level jets in an event
   Float_t fGenJetEtaArray[fnMaxJet] = {0};      // etas of the generator level jets in an event
   Float_t fGenJetWTAEtaArray[fnMaxJet] = {0};   // WTA etas of the generator level jets in an event
+
+  // Leaves for flow fit study
+  vector<float>* fFlowFitVn;          // All fitted vn components from the flow fit
+  vector<float>* fFlowFitEventPlane;  // All event plane angles from the flow fit
+  Int_t fFlowFitFirstComponent;       // First fitted component in the flow fit
+  Float_t fFlowFitAmplitude;          // Amplitude of the flow fit
+  Float_t fFlowFitQuality;            // Fit quality from the flow fit
+
+  // Leaves for the particle flow candidate tree
+  Int_t fnParticleFlowCandidates;                     // Number of particle flow candidates
+  vector<int> *fParticleFlowCandidateIdVector;        // Vector for particle flow candidate ID:s
+  vector<float> *fParticleFlowCandidatePtVector;      // Vector for particle flow candidate pT:s
+  vector<float> *fParticleFlowCandidatePhiVector;     // Vector for particle flow candidate phis
+  vector<float> *fParticleFlowCandidateEtaVector;     // Vector for particle flow candidate etas
   
   // Leaves for the track tree regardless of forest type
   Int_t fnTracks;  // Number of tracks

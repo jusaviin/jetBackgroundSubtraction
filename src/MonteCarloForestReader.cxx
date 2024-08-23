@@ -14,6 +14,7 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fJetTree(0),
   fTrackTree(0),
   fGenParticleTree(0),
+  fParticleFlowCandidateTree(0),
   fHiVzBranch(0),
   fHiBinBranch(0),
   fPtHatBranch(0),
@@ -39,6 +40,15 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fGenJetWTAPhiBranch(0),
   fGenJetEtaBranch(0),
   fGenJetWTAEtaBranch(0),
+  fFlowFitVnBranch(0),
+  fFlowFitEventPlaneBranch(0),
+  fFlowFitFirstComponentBranch(0),
+  fFlowFitAmplitudeBranch(0),
+  fFlowFitQualityBranch(0),
+  fParticleFlowCandidateIdBranch(0),
+  fParticleFlowCandidatePtBranch(0),
+  fParticleFlowCandidatePhiBranch(0),
+  fParticleFlowCandidateEtaBranch(0),
   fnTracksBranch(0),
   fTrackPtBranch(0),
   fTrackPtErrorBranch(0),
@@ -85,6 +95,16 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fGenJetWTAPhiArray(),
   fGenJetEtaArray(),
   fGenJetWTAEtaArray(),
+  fFlowFitVn(0),
+  fFlowFitEventPlane(0),
+  fFlowFitFirstComponent(0),
+  fFlowFitAmplitude(0),
+  fFlowFitQuality(0),
+  fnParticleFlowCandidates(0),
+  fParticleFlowCandidateIdVector(0),
+  fParticleFlowCandidatePtVector(0),
+  fParticleFlowCandidatePhiVector(0),
+  fParticleFlowCandidateEtaVector(0),
   fnTracks(0),
   fTrackPtVector(0),
   fTrackPtErrorVector(0),
@@ -132,6 +152,7 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fJetTree(0),
   fTrackTree(0),
   fGenParticleTree(0),
+  fParticleFlowCandidateTree(0),
   fHiVzBranch(0),
   fHiBinBranch(0),
   fPtHatBranch(0),
@@ -157,6 +178,15 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fGenJetWTAPhiBranch(0),
   fGenJetEtaBranch(0),
   fGenJetWTAEtaBranch(0),
+  fFlowFitVnBranch(0),
+  fFlowFitEventPlaneBranch(0),
+  fFlowFitFirstComponentBranch(0),
+  fFlowFitAmplitudeBranch(0),
+  fFlowFitQualityBranch(0),
+  fParticleFlowCandidateIdBranch(0),
+  fParticleFlowCandidatePtBranch(0),
+  fParticleFlowCandidatePhiBranch(0),
+  fParticleFlowCandidateEtaBranch(0),
   fnTracksBranch(0),
   fTrackPtBranch(0),
   fTrackPtErrorBranch(0),
@@ -203,6 +233,16 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fGenJetWTAPhiArray(),
   fGenJetEtaArray(),
   fGenJetWTAEtaArray(),
+  fFlowFitVn(0),
+  fFlowFitEventPlane(0),
+  fFlowFitFirstComponent(0),
+  fFlowFitAmplitude(0),
+  fFlowFitQuality(0),
+  fnParticleFlowCandidates(0),
+  fParticleFlowCandidateIdVector(0),
+  fParticleFlowCandidatePtVector(0),
+  fParticleFlowCandidatePhiVector(0),
+  fParticleFlowCandidateEtaVector(0),
   fnTracks(0),
   fTrackPtVector(0),
   fTrackPtErrorVector(0),
@@ -246,6 +286,7 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fJetTree(in.fJetTree),
   fTrackTree(in.fTrackTree),
   fGenParticleTree(in.fGenParticleTree),
+  fParticleFlowCandidateTree(in.fParticleFlowCandidateTree),
   fHiVzBranch(in.fHiVzBranch),
   fHiBinBranch(in.fHiBinBranch),
   fPtHatBranch(in.fPtHatBranch),
@@ -271,6 +312,15 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fGenJetWTAPhiBranch(in.fGenJetWTAPhiBranch),
   fGenJetEtaBranch(in.fGenJetEtaBranch),
   fGenJetWTAEtaBranch(in.fGenJetWTAEtaBranch),
+  fFlowFitVnBranch(in.fFlowFitVnBranch),
+  fFlowFitEventPlaneBranch(in.fFlowFitEventPlaneBranch),
+  fFlowFitFirstComponentBranch(in.fFlowFitFirstComponentBranch),
+  fFlowFitAmplitudeBranch(in.fFlowFitAmplitudeBranch),
+  fFlowFitQualityBranch(in.fFlowFitQualityBranch),
+  fParticleFlowCandidateIdBranch(in.fParticleFlowCandidateIdBranch),
+  fParticleFlowCandidatePtBranch(in.fParticleFlowCandidatePtBranch),
+  fParticleFlowCandidatePhiBranch(in.fParticleFlowCandidatePhiBranch),
+  fParticleFlowCandidateEtaBranch(in.fParticleFlowCandidateEtaBranch),
   fnTracksBranch(in.fnTracksBranch),
   fTrackPtBranch(in.fTrackPtBranch),
   fTrackPtErrorBranch(in.fTrackPtErrorBranch),
@@ -302,6 +352,16 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fnJets(in.fnJets),
   fnGenJets(in.fnGenJets),
   fEventWeight(in.fEventWeight),
+  fFlowFitVn(in.fFlowFitVn),
+  fFlowFitEventPlane(in.fFlowFitEventPlane),
+  fFlowFitFirstComponent(in.fFlowFitFirstComponent),
+  fFlowFitAmplitude(in.fFlowFitAmplitude),
+  fFlowFitQuality(in.fFlowFitQuality),
+  fnParticleFlowCandidates(in.fnParticleFlowCandidates),
+  fParticleFlowCandidateIdVector(in.fParticleFlowCandidateIdVector),
+  fParticleFlowCandidatePtVector(in.fParticleFlowCandidatePtVector),
+  fParticleFlowCandidatePhiVector(in.fParticleFlowCandidatePhiVector),
+  fParticleFlowCandidateEtaVector(in.fParticleFlowCandidateEtaVector),
   fnTracks(in.fnTracks),
   fTrackPtVector(in.fTrackPtVector),
   fTrackPhiVector(in.fTrackPhiVector),
@@ -361,6 +421,7 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fJetTree = in.fJetTree;
   fTrackTree = in.fTrackTree;
   fGenParticleTree = in.fGenParticleTree;
+  fParticleFlowCandidateTree = in.fParticleFlowCandidateTree;
   fHiVzBranch = in.fHiVzBranch;
   fHiBinBranch = in.fHiBinBranch;
   fPtHatBranch = in.fPtHatBranch;
@@ -386,6 +447,15 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fGenJetWTAPhiBranch = in.fGenJetWTAPhiBranch;
   fGenJetEtaBranch = in.fGenJetEtaBranch;
   fGenJetWTAEtaBranch = in.fGenJetWTAEtaBranch;
+  fFlowFitVnBranch = in.fFlowFitVnBranch;
+  fFlowFitEventPlaneBranch = in.fFlowFitEventPlaneBranch;
+  fFlowFitFirstComponentBranch = in.fFlowFitFirstComponentBranch;
+  fFlowFitAmplitudeBranch = in.fFlowFitAmplitudeBranch;
+  fFlowFitQualityBranch = in.fFlowFitQualityBranch;
+  fParticleFlowCandidateIdBranch = in.fParticleFlowCandidateIdBranch;
+  fParticleFlowCandidatePtBranch = in.fParticleFlowCandidatePtBranch;
+  fParticleFlowCandidatePhiBranch = in.fParticleFlowCandidatePhiBranch;
+  fParticleFlowCandidateEtaBranch = in.fParticleFlowCandidateEtaBranch;
   fnTracksBranch = in.fnTracksBranch;
   fTrackPtBranch = in.fTrackPtBranch;
   fTrackPtErrorBranch = in.fTrackPtErrorBranch;
@@ -417,6 +487,16 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fnJets = in.fnJets;
   fnGenJets = in.fnGenJets;
   fEventWeight = in.fEventWeight;
+  fFlowFitVn = in.fFlowFitVn;
+  fFlowFitEventPlane = in.fFlowFitEventPlane;
+  fFlowFitFirstComponent = in.fFlowFitFirstComponent;
+  fFlowFitAmplitude = in.fFlowFitAmplitude;
+  fFlowFitQuality = in.fFlowFitQuality;
+  fnParticleFlowCandidates = in.fnParticleFlowCandidates;
+  fParticleFlowCandidateIdVector = in.fParticleFlowCandidateIdVector;
+  fParticleFlowCandidatePtVector = in.fParticleFlowCandidatePtVector;
+  fParticleFlowCandidatePhiVector = in.fParticleFlowCandidatePhiVector;
+  fParticleFlowCandidateEtaVector = in.fParticleFlowCandidateEtaVector;
   fnTracks = in.fnTracks;
   
   for(Int_t i = 0; i < fnMaxJet; i++){
@@ -549,6 +629,35 @@ void MonteCarloForestReader::Initialize(){
     
   fJetTree->SetBranchStatus("ngen",1);
   fJetTree->SetBranchAddress("ngen",&fnGenJets,&fnGenJetsBranch);
+
+  // Load the information about the flow fit in a given event
+  if(fJetType == 2){
+    // This information can be loaded only if the flow fit is actually done
+
+    fJetTree->SetBranchStatus("flowFitVn",1);
+    fJetTree->SetBranchAddress("flowFitVn", &fFlowFitVn, &fFlowFitVnBranch);
+    fJetTree->SetBranchStatus("flowFitEventPlane",1);
+    fJetTree->SetBranchAddress("flowFitEventPlane", &fFlowFitEventPlane, &fFlowFitEventPlaneBranch);
+    fJetTree->SetBranchStatus("flowFitFirstComponent",1);
+    fJetTree->SetBranchAddress("flowFitFirstComponent", &fFlowFitFirstComponent, &fFlowFitFirstComponentBranch);
+    fJetTree->SetBranchStatus("flowFitAmplitude",1);
+    fJetTree->SetBranchAddress("flowFitAmplitude", &fFlowFitAmplitude, &fFlowFitAmplitudeBranch);
+    fJetTree->SetBranchStatus("flowFitQuality",1);
+    fJetTree->SetBranchAddress("flowFitQuality", &fFlowFitQuality, &fFlowFitQualityBranch);
+
+  }
+
+  // Connect the branches to the particle flow candidate tree
+  fParticleFlowCandidateTree->SetBranchStatus("pfId",1);
+  fParticleFlowCandidateTree->SetBranchAddress("pfId",&fParticleFlowCandidateIdVector,&fParticleFlowCandidateIdBranch);
+  fParticleFlowCandidateTree->SetBranchStatus("pfPt",1);
+  fParticleFlowCandidateTree->SetBranchAddress("pfPt",&fParticleFlowCandidatePtVector,&fParticleFlowCandidatePtBranch);
+  fParticleFlowCandidateTree->SetBranchStatus("pfPhi",1);
+  fParticleFlowCandidateTree->SetBranchAddress("pfPhi",&fParticleFlowCandidatePhiVector,&fParticleFlowCandidatePhiBranch);
+  fParticleFlowCandidateTree->SetBranchStatus("pfEta",1);
+  fParticleFlowCandidateTree->SetBranchAddress("pfEta",&fParticleFlowCandidateEtaVector,&fParticleFlowCandidateEtaBranch);
+
+
   
   // Connect the branches to the track tree
   /*
@@ -622,6 +731,9 @@ void MonteCarloForestReader::ReadForestFromFile(TFile* inputFile){
   treeName[2] = "akFlowPuCs4PFJetAnalyzer/t"; // Tree for flow subtracted csPF jets
   
   fJetTree = (TTree*)inputFile->Get(treeName[fJetType]);
+
+  // Read the particle flow candidate tree
+  fParticleFlowCandidateTree = (TTree*) inputFile->Get("particleFlowAnalyser/pftree");
   
   // Read track and generator level particle trees
   //fTrackTree = (TTree*)inputFile->Get("PbPbTracks/trackTree");
@@ -645,6 +757,7 @@ void MonteCarloForestReader::BurnForest(){
   fHeavyIonTree->Delete();
   fSkimTree->Delete();
   fJetTree->Delete();
+  fParticleFlowCandidateTree->Delete();
   //fTrackTree->Delete();
   fGenParticleTree->Delete();
 }
@@ -656,10 +769,12 @@ void MonteCarloForestReader::GetEvent(Int_t iEvent){
   fHeavyIonTree->GetEntry(iEvent);
   fSkimTree->GetEntry(iEvent);
   fJetTree->GetEntry(iEvent);
+  fParticleFlowCandidateTree->GetEntry(iEvent);
   //fTrackTree->GetEntry(iEvent);
   fGenParticleTree->GetEntry(iEvent);
    
-  // Read the numbers of generator level particles for this event
+  // Read the numbers of particle flow cnadidates and generator level particles for this event
+  fnParticleFlowCandidates = fParticleFlowCandidatePtVector->size();
   fnGenParticles = fGenParticlePtArray->size();
 }
 
@@ -1172,7 +1287,59 @@ Int_t MonteCarloForestReader::GetGenJetFlavor(Int_t iJet) const{
   // Return the matching parton flavor
   return fJetRefFlavorArray[matchingIndex];
 
-}      
+}
+
+// Getter for all vn components of the flow fit
+std::vector<float>* MonteCarloForestReader::GetFlowFitVn() const{
+  return fFlowFitVn;
+}
+
+// Getter for all event plane angles in the flow fit
+std::vector<float>* MonteCarloForestReader::GetFlowFitEventPlane() const{
+  return fFlowFitEventPlane;
+}
+
+// Getter for the first component in the flow fit
+Int_t MonteCarloForestReader::GetFlowFitFirstComponent() const{
+  return fFlowFitFirstComponent;
+}
+
+// Getter for amplitude of the flow fit
+Float_t MonteCarloForestReader::GetFlowFitAmplitude() const{
+  return fFlowFitAmplitude;
+}
+
+// Getter for quality measure of the flow fit
+Float_t MonteCarloForestReader::GetFlowFitQuality() const{
+  return fFlowFitQuality;
+}
+
+// Getters for leaves in the particle flow candidate tree
+
+// Getter for particle flow candidate ID
+Int_t MonteCarloForestReader::GetParticleFlowCandidateId(Int_t iCandidate) const{
+  return fParticleFlowCandidateIdVector->at(iCandidate);
+} 
+
+// Getter for particle flow candidate pT
+Float_t MonteCarloForestReader::GetParticleFlowCandidatePt(Int_t iCandidate) const{
+  return fParticleFlowCandidatePtVector->at(iCandidate);
+} 
+
+// Getter for particle flow candidate phi
+Float_t MonteCarloForestReader::GetParticleFlowCandidatePhi(Int_t iCandidate) const{
+  return fParticleFlowCandidatePhiVector->at(iCandidate);
+} 
+
+// Getter for particle flow candidate eta
+Float_t MonteCarloForestReader::GetParticleFlowCandidateEta(Int_t iCandidate) const{
+  return fParticleFlowCandidateEtaVector->at(iCandidate);
+} 
+
+// Getter for number of particle flow candidates   
+Int_t MonteCarloForestReader::GetNParticleFlowCandidates() const{
+  return fnParticleFlowCandidates;
+}                    
 
 // Getter for primary vertex filter bit
 Int_t MonteCarloForestReader::GetPrimaryVertexFilterBit() const{

@@ -292,6 +292,18 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   Double_t particlePt = 0;          // pT of a generator level particle
   Double_t particleEta = 0;         // eta of a generator level particle
   Double_t particlePhi = 0;         // phi of a generator level particle
+
+  // Variables for particle flow candidates
+  Int_t nParticleFlowCandidates = 0;      // Number of particle flow candidates
+  Double_t particleFlowCandidatePt = 0;   // pT of the particle flow candidate
+  Double_t particleFlowCandidateEta = 0;  // eta of the particle flow candidate
+  Double_t particleFlowCandidatePhi = 0;  // phi of the particle flow candidate
+  Int_t particleFlowCandidateId = 0;      // ID code for the particle flow candidate
+
+  // Printing different flow components to the console
+  Int_t firstFittedFlow = 0;             // First flow component that is fitted
+  std::vector<float>* flowFitVn;         // Vector for all vn components
+  std::vector<float>* flowFitEventPlane; // Vactor for all event plane angles
   
   // Variables for smearing study
   Double_t smearingFactor = 0;       // Larger of the JEC uncertainties
@@ -391,6 +403,9 @@ void JetBackgroundAnalyzer::RunAnalysis(){
     
     for(Int_t iEvent = 0; iEvent < nEvents; iEvent++){ // nEvents
 
+      if(iEvent != 122) continue;
+      cout << "Analyzing event " << iEvent << endl;
+
       // For each event, chack that the file stays open:
       // This is to try to combat file read errors occasionally happening during CRAB running.
       // Will need to monitor the situation and see if this really works.
@@ -470,6 +485,17 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         particleEta = fEventReader->GetGenParticleEta(iParticle);
         particlePhi = fEventReader->GetGenParticlePhi(iParticle);
 
+        // Fill the pythia and hydjet particle phi histograms
+        if(TMath::Abs(particleEta) < 2){
+          if(fEventReader->GetGenParticleSubevent(iParticle) == 0){
+            fHistograms->fhPhiPythia->Fill(particlePhi);
+            fHistograms->fhPhiPythiaPt->Fill(particlePhi, particlePt);
+          } else {
+            fHistograms->fhPhiHydjet->Fill(particlePhi);
+            fHistograms->fhPhiHydjetPt->Fill(particlePhi, particlePt);
+          }
+        }
+
         // Cuts for particles used in event plane calculation
         if(TMath::Abs(particleEta) > fMaxParticleEtaEventPlane) continue;  // Only consider particles from mid-rapidity
         if(fEventReader->GetGenParticleSubevent(iParticle) == 0) continue; // Only use Hydjet-particles for event plane calculation
@@ -491,12 +517,62 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       for(int iFlow = 0; iFlow < nFlowComponentsEP; iFlow++){
         eventPlaneQ[iFlow] = TMath::Sqrt(eventPlaneQx[iFlow]*eventPlaneQx[iFlow] + eventPlaneQy[iFlow]*eventPlaneQy[iFlow]);
         eventPlaneAngle[iFlow] = (1.0/(iFlow+2.0)) * TMath::ATan2(eventPlaneQy[iFlow], eventPlaneQx[iFlow]);
+        if(iFlow == 0) std::cout << "EVENTPLANE " << eventPlaneAngle[iFlow] << endl;
       }
 
       // Normalize the Q-vector with multiplicity
       for(int iFlow = 0; iFlow < nFlowComponentsEP; iFlow++){
         eventPlaneQ[iFlow] /= TMath::Sqrt(eventPlaneMultiplicity);
       }
+
+      // Fill the phi histograms also from PF candidates to see how if these are different from gen particles
+      nParticleFlowCandidates = fEventReader->GetNParticleFlowCandidates();
+      for(int iParticleFlowCandidate = 0; iParticleFlowCandidate < nParticleFlowCandidates; iParticleFlowCandidate++){
+
+        particleFlowCandidateId = fEventReader->GetParticleFlowCandidateId(iParticleFlowCandidate);
+
+        // Require that the particle flow candidate is charged hadron
+        if(particleFlowCandidateId != 1) continue;
+
+        particleFlowCandidatePt = fEventReader->GetParticleFlowCandidatePt(iParticleFlowCandidate);
+
+        // Require that the pT is larger than 0.3 and smaller than 3. The 0.3 cut is built in in the forest, so only upper cut needed
+        if(particleFlowCandidatePt > 3) continue;
+
+        particleFlowCandidateEta = fEventReader->GetParticleFlowCandidateEta(iParticleFlowCandidate);
+ 
+        // Require that eta is within +- 1
+        if(TMath::Abs(particleFlowCandidateEta > 1)) continue;
+
+        // For particle flow candidates surviving these cuts, fill the phi histograms
+        particleFlowCandidatePhi = fEventReader->GetParticleFlowCandidatePhi(iParticleFlowCandidate);
+
+        fHistograms->fhPhiPfCandidate->Fill(particleFlowCandidatePhi);
+        fHistograms->fhPhiPfCandidatePt->Fill(particleFlowCandidatePhi, particleFlowCandidatePt);
+
+      } // Particle flow candidate loop
+
+
+      // Find all the flow fit component and print them to console
+      firstFittedFlow = fEventReader->GetFlowFitFirstComponent();
+      flowFitVn = fEventReader->GetFlowFitVn();
+      flowFitEventPlane = fEventReader->GetFlowFitEventPlane();
+
+      for(int iFlow = 0; iFlow < flowFitVn->size(); iFlow++){
+        std::cout << "FLOWFITV" << firstFittedFlow+iFlow << " " << flowFitVn->at(iFlow) << std::endl;
+        std::cout << "FLOWFITEVENTPLANE" << firstFittedFlow+iFlow << " " << flowFitEventPlane->at(iFlow) << std::endl;
+      }
+
+      // Print also the fit quality and amplitude to the console
+      std::cout << "FLOWFITQUALITY " << fEventReader->GetFlowFitQuality() << std::endl;
+      std::cout << "FLOWFITAMPLITUDE " << fEventReader->GetFlowFitAmplitude() << std::endl;
+
+
+      /*std::cout << "FLOWFITV2 " << fEventReader->GetFlowFitV2() << std::endl;
+      std::cout << "FLOWFITEVENTPLANE2 " << fEventReader->GetFlowFitEventPlane2() << std::endl;
+      std::cout << "FLOWFITV3 " << fEventReader->GetFlowFitV3() << std::endl;
+      std::cout << "FLOWFITEVENTPLANE3 " << fEventReader->GetFlowFitEventPlane3() << std::endl;
+      */
 
       //***********************************************************
       //       First jet loop for event plane correlations
@@ -509,117 +585,135 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       leadingJetFlavor = -999;
       leadingJetMatch = -999;
 
-      // Jet loop
-      nJets = fEventReader->GetNJets(fJetType);
-      for(Int_t jetIndex = 0; jetIndex < nJets; jetIndex++){
+      // Loop over all reconstructed and generator level jets
+      for(int iJetType = 0; iJetType < MonteCarloForestReader::knJetTypes; iJetType++){
+        nJets = fEventReader->GetNJets(iJetType);
+        for(Int_t jetIndex = 0; jetIndex < nJets; jetIndex++){
         
-        jetPt = fEventReader->GetJetRawPt(fJetType, jetIndex);  // Get the raw pT and do manual correction later
-        jetPhi = fEventReader->GetJetPhi(fJetType, jetIndex);
-        jetEta = fEventReader->GetJetEta(fJetType, jetIndex);
-        jetFlavor = -999;
+          jetPt = fEventReader->GetJetRawPt(iJetType, jetIndex);  // Get the raw pT and do manual correction later
+          jetPhi = fEventReader->GetJetPhi(iJetType, jetIndex);
+          jetEta = fEventReader->GetJetEta(iJetType, jetIndex);
+          jetFlavor = -999;
           
-        //  ========================================
-        //  ======== Apply jet quality cuts ========
-        //  ========================================
+          //  ========================================
+          //  ======== Apply jet quality cuts ========
+          //  ========================================
           
-        if(TMath::Abs(jetEta) >= fJetEtaCut) continue; // Cut for jet eta
+          if(TMath::Abs(jetEta) >= fJetEtaCut) continue; // Cut for jet eta
           
-        // No jet quality cuts for generator level jets
-        if(!(fJetType == MonteCarloForestReader::kGeneratorLevelJet)){              
-          if(fMinimumMaxTrackPtFraction >= fEventReader->GetJetMaxTrackPt(jetIndex)/fEventReader->GetJetRawPt(jetIndex)){
+          // No jet quality cuts for generator level jets
+          if(!(iJetType == MonteCarloForestReader::kGeneratorLevelJet)){              
+            if(fMinimumMaxTrackPtFraction >= fEventReader->GetJetMaxTrackPt(jetIndex)/fEventReader->GetJetRawPt(jetIndex)){
             continue; // Cut for jets with only very low pT particles
+            }
+            if(fMaximumMaxTrackPtFraction <= fEventReader->GetJetMaxTrackPt(jetIndex)/fEventReader->GetJetRawPt(jetIndex)){
+              continue; // Cut for jets where all the pT is taken by one track
+            }
           }
-          if(fMaximumMaxTrackPtFraction <= fEventReader->GetJetMaxTrackPt(jetIndex)/fEventReader->GetJetRawPt(jetIndex)){
-            continue; // Cut for jets where all the pT is taken by one track
-          }
-        }
           
-        //  ========================================
-        //  ======= Jet quality cuts applied =======
-        //  ========================================
+          //  ========================================
+          //  ======= Jet quality cuts applied =======
+          //  ========================================
 
-        // No jet pT correction or smearing for generator level jets
-        if(!(fJetType == MonteCarloForestReader::kGeneratorLevelJet)){
+          // No jet pT correction or smearing for generator level jets
+          if(!(iJetType == MonteCarloForestReader::kGeneratorLevelJet)){
     
-          // For reconstructed jets do a correction for the jet pT
-          fJetCorrector2018->SetJetPT(jetPt);
-          fJetCorrector2018->SetJetEta(jetEta);
-          fJetCorrector2018->SetJetPhi(jetPhi);
+            // For reconstructed jets do a correction for the jet pT
+            fJetCorrector2018->SetJetPT(jetPt);
+            fJetCorrector2018->SetJetEta(jetEta);
+            fJetCorrector2018->SetJetPhi(jetPhi);
           
-          jetPt = fJetCorrector2018->GetCorrectedPT();
+            jetPt = fJetCorrector2018->GetCorrectedPT();
           
-          // Apply gaussian smearing to take into account overly optimistic jet energy resolution
-          smearingFactor = GetSmearingFactor(jetPt, jetEta, centrality);
-          jetPt = jetPt * fRng->Gaus(1,smearingFactor);
+            // Apply gaussian smearing to take into account overly optimistic jet energy resolution
+            smearingFactor = GetSmearingFactor(jetPt, jetEta, centrality);
+            jetPt = jetPt * fRng->Gaus(1,smearingFactor);
             
-        } // Jet pT correction
+          } // Jet pT correction
           
-        // After the jet pT can been corrected, apply analysis jet pT cuts
-        if(jetPt < fJetMinimumPtCut) continue;
-        if(jetPt > fJetMaximumPtCut) continue;
+          // After the jet pT can been corrected, apply analysis jet pT cuts
+          if(jetPt < fJetMinimumPtCut) continue;
+          if(jetPt > fJetMaximumPtCut) continue;
 
-        // Check if the current jet has a matching jet
-        matchingJetExists = 0;
-        if(fEventReader->HasMatchingJet(fJetType, jetIndex)){
-          // Require that one pT is not less than half of the other pT
-          if(jetPt*0.5 < fEventReader->GetMatchedPt(fJetType, jetIndex) && fEventReader->GetMatchedPt(fJetType, jetIndex) * 0.5 < jetPt){
-            matchingJetExists = 1;
+          // Check if the current jet has a matching jet
+          matchingJetExists = 0;
+          if(fEventReader->HasMatchingJet(iJetType, jetIndex)){
+            // Require that one pT is not less than half of the other pT
+            if(jetPt*0.5 < fEventReader->GetMatchedPt(iJetType, jetIndex) && fEventReader->GetMatchedPt(iJetType, jetIndex) * 0.5 < jetPt){
+              matchingJetExists = 1;
+            }
           }
-        }
 
-        // Find the jet flavor and translate it into a quark [-6,-1] U [1,6] or gluon (21)
-        // In the jet flavor is not any of these values, it remains undeterined
-        jetFlavor = JetBackgroundHistograms::kUndetermined;
-        partonFlavor = fEventReader->GetJetFlavor(fJetType, jetIndex);
-        if(TMath::Abs(partonFlavor) == 21) jetFlavor = JetBackgroundHistograms::kGluon;
-        if(TMath::Abs(partonFlavor) < 7){
-          if(partonFlavor != 0) jetFlavor = JetBackgroundHistograms::kQuark;
-        }
+          // Find the jet flavor and translate it into a quark [-6,-1] U [1,6] or gluon (21)
+          // In the jet flavor is not any of these values, it remains undeterined
+          jetFlavor = JetBackgroundHistograms::kUndetermined;
+          partonFlavor = fEventReader->GetJetFlavor(iJetType, jetIndex);
+          if(TMath::Abs(partonFlavor) == 21) jetFlavor = JetBackgroundHistograms::kGluon;
+          if(TMath::Abs(partonFlavor) < 7){
+            if(partonFlavor != 0) jetFlavor = JetBackgroundHistograms::kQuark;
+          }
 
-        // After the event selection, update the leading jet variables
-        if(jetPt > leadingJetPt){
-          leadingJetPt = jetPt;
-          leadingJetPhi = jetPhi;
-          leadingJetEta = jetEta;
-          leadingJetFlavor = jetFlavor;
-          leadingJetMatch = matchingJetExists;
-        }
+          // After the event selection, update the leading jet variables
+          if(jetPt > leadingJetPt){
+            leadingJetPt = jetPt;
+            leadingJetPhi = jetPhi;
+            leadingJetEta = jetEta;
+            leadingJetFlavor = jetFlavor;
+            leadingJetMatch = matchingJetExists;
+          }
         
-        //************************************************
-        //         Fill histograms for all jets
-        //************************************************
+          //************************************************
+          //         Fill histograms for all jets
+          //************************************************
           
-        // Fill the axes in correct order
-        fillerJet[0] = jetPt;             // Axis 0 = any jet pT
-        fillerJet[1] = jetPhi;            // Axis 1 = any jet phi
-        fillerJet[2] = jetEta;            // Axis 2 = any jet eta
-        fillerJet[3] = centrality;        // Axis 3 = centrality
-        fillerJet[4] = jetFlavor;         // Axis 4 = flavor of the jet
-        fillerJet[5] = matchingJetExists; // Axis 5 = flag is matching jet exists
+          // Fill the axes in correct order
+          fillerJet[0] = jetPt;             // Axis 0 = any jet pT
+          fillerJet[1] = jetPhi;            // Axis 1 = any jet phi
+          fillerJet[2] = jetEta;            // Axis 2 = any jet eta
+          fillerJet[3] = centrality;        // Axis 3 = centrality
+          fillerJet[4] = jetFlavor;         // Axis 4 = flavor of the jet
+          fillerJet[5] = matchingJetExists; // Axis 5 = flag is matching jet exists
           
-        fHistograms->fhInclusiveJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
+          fHistograms->fhInclusiveJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
 
-        //**********************************************************************
-        //      Fill histograms for inclusive jet - event plane correlation
-        //**********************************************************************
+          //**********************************************************************
+          //      Fill histograms for inclusive jet - event plane correlation
+          //**********************************************************************
 
-        for(int iFlow = 0; iFlow < nFlowComponentsEP; iFlow++){
+          for(int iFlow = 0; iFlow < 1; iFlow++){
           
-          // Determine the deltaPhi between jet axis and the event plane in the interval [-pi/2,3pi/2]
-          jetEventPlaneDeltaPhi = jetPhi - eventPlaneAngle[iFlow];
-          while(jetEventPlaneDeltaPhi > (1.5*TMath::Pi())){jetEventPlaneDeltaPhi += -2*TMath::Pi();}
-          while(jetEventPlaneDeltaPhi < (-0.5*TMath::Pi())){jetEventPlaneDeltaPhi += 2*TMath::Pi();}
+            // Determine the deltaPhi between jet axis and the event plane in the interval [-pi/2,3pi/2]
+            jetEventPlaneDeltaPhi = jetPhi - eventPlaneAngle[iFlow];
+            while(jetEventPlaneDeltaPhi > (1.5*TMath::Pi())){jetEventPlaneDeltaPhi += -2*TMath::Pi();}
+            while(jetEventPlaneDeltaPhi < (-0.5*TMath::Pi())){jetEventPlaneDeltaPhi += 2*TMath::Pi();}
 
-          // Fill the jet - event plane correlation histograms
-          fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
-          fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
-          fillerEventPlane[2] = centrality;             // Axis 2: centrality
+            // Fill the jet - event plane correlation histograms
+            fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
+            fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
+            fillerEventPlane[2] = centrality;             // Axis 2: centrality
 
-          fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
+            fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
 
-        }
+          }
+
+          if(iJetType == MonteCarloForestReader::kReconstructedJet){
+            cout << "RECOJET " << jetPhi << " " << jetPt << endl;
+          } else {
+            cout << "GENJET " << jetPhi << " " << jetPt << endl;
+          }
+
+          /*if(centrality < 30){
+          cout << "Found ";
+            if(iJetType == MonteCarloForestReader::kReconstructedJet){
+              cout << " reconstructed ";
+            } else {
+              cout << " generator level ";
+            }
+            cout << " jet with pT " << jetPt << " eta " << jetEta << " phi " << jetPhi << " DeltaPhi " << jetEventPlaneDeltaPhi << " while event plane angle is " << eventPlaneAngle[0] << " and centrality " << centrality << endl;
+          }*/
         
-      } // End of jet loop
+        } // End of jet loop
+      } // Jet type loop
 
       // If a leading jet exists, fill the leading jet histograms
       if(leadingJetPt > 0){

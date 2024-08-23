@@ -42,6 +42,12 @@ public:
   TH1F* fhCentralityWeighted;      // Weighted centrality distribution (only meaningful for MC)
   TH1F* fhPtHat;                   // pT hat for MC events (only meaningful for MC)
   TH1F* fhPtHatWeighted;           // Weighted pT hat distribution
+  TH1D* fhPhiPythia;               // Phi distribution of Pythia particles
+  TH1D* fhPhiHydjet;               // Phi distribution of Hydjet particles
+  TH1D* fhPhiPythiaPt;             // pT weighted phi distribution of Pythia particles
+  TH1D* fhPhiHydjetPt;             // pT weighted phi distribution of Hydjet particles
+  TH1D* fhPhiPfCandidate;          // Phi distribution from particle flow candidates
+  TH1D* fhPhiPfCandidatePt;        // pT weighted phi distribution from particle flow candidates
   THnSparseF* fhInclusiveJet; // Inclusive jet information
   THnSparseF* fhLeadingJet;   // Leading jet information
   THnSparseF* fhJetPtClosure; // Jet pT closure histograms. Also information for response matrix.

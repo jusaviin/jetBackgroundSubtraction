@@ -1,1 +1,1 @@
-data/HiForestMiniAOD_twoTestFiles.root
+data/HiForestMiniAOD_noProbabilityCuts.root
