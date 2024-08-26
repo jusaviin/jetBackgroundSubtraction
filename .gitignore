@@ -10,6 +10,7 @@ jetBackgroundAnalysis.dSYM
 comp*.txt
 list_oldForest.txt
 myList.txt
+*.log
 
 # Ignore all root files
 *.root
