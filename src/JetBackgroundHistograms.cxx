@@ -23,6 +23,7 @@ JetBackgroundHistograms::JetBackgroundHistograms() :
   fhPtHatWeighted(0),
   fhInclusiveJet(0),
   fhLeadingJet(0),
+  fhCalorimeterJet(0),
   fhJetPtClosure(0),
   fCard(0)
 {
@@ -31,6 +32,7 @@ JetBackgroundHistograms::JetBackgroundHistograms() :
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane] = NULL;
     fhLeadingJetEventPlane[iEventPlane] = NULL;
+    fhCalorimeterJetEventPlane[iEventPlane] = NULL;
   }
   
 }
@@ -48,6 +50,7 @@ JetBackgroundHistograms::JetBackgroundHistograms(ConfigurationCard* newCard) :
   fhPtHatWeighted(0),
   fhInclusiveJet(0),
   fhLeadingJet(0),
+  fhCalorimeterJet(0),
   fhJetPtClosure(0),
   fCard(newCard)
 {
@@ -56,6 +59,7 @@ JetBackgroundHistograms::JetBackgroundHistograms(ConfigurationCard* newCard) :
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane] = NULL;
     fhLeadingJetEventPlane[iEventPlane] = NULL;
+    fhCalorimeterJetEventPlane[iEventPlane] = NULL;
   }
 }
 
@@ -72,6 +76,7 @@ JetBackgroundHistograms::JetBackgroundHistograms(const JetBackgroundHistograms& 
   fhPtHatWeighted(in.fhPtHatWeighted),
   fhInclusiveJet(in.fhInclusiveJet),
   fhLeadingJet(in.fhLeadingJet),
+  fhCalorimeterJet(in.fhCalorimeterJet),
   fhJetPtClosure(in.fhJetPtClosure),
   fCard(in.fCard)
 {
@@ -80,6 +85,7 @@ JetBackgroundHistograms::JetBackgroundHistograms(const JetBackgroundHistograms& 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane] = in.fhInclusiveJetEventPlane[iEventPlane];
     fhLeadingJetEventPlane[iEventPlane] = in.fhLeadingJetEventPlane[iEventPlane];
+    fhCalorimeterJetEventPlane[iEventPlane] = in.fhCalorimeterJetEventPlane[iEventPlane];
   }
 
 }
@@ -101,12 +107,14 @@ JetBackgroundHistograms& JetBackgroundHistograms::operator=(const JetBackgroundH
   fhPtHatWeighted = in.fhPtHatWeighted;
   fhInclusiveJet = in.fhInclusiveJet;
   fhLeadingJet = in.fhLeadingJet;
+  fhCalorimeterJet = in.fhCalorimeterJet;
   fhJetPtClosure = in.fhJetPtClosure;
   fCard = in.fCard;
 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane] = in.fhInclusiveJetEventPlane[iEventPlane];
     fhLeadingJetEventPlane[iEventPlane] = in.fhLeadingJetEventPlane[iEventPlane];
+    fhCalorimeterJetEventPlane[iEventPlane] = in.fhCalorimeterJetEventPlane[iEventPlane];
   }
   
   return *this;
@@ -126,11 +134,13 @@ JetBackgroundHistograms::~JetBackgroundHistograms(){
   delete fhPtHatWeighted;
   delete fhInclusiveJet;
   delete fhLeadingJet;
+  delete fhCalorimeterJet;
   delete fhJetPtClosure;
 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     delete fhInclusiveJetEventPlane[iEventPlane];
     delete fhLeadingJetEventPlane[iEventPlane];
+    delete fhCalorimeterJetEventPlane[iEventPlane];
   }
 }
 
@@ -292,10 +302,12 @@ void JetBackgroundHistograms::CreateHistograms(){
   // Create the histogram for all jets using the above binning information
   fhInclusiveJet = new THnSparseF("inclusiveJet", "inclusiveJet", nAxesJet, nBinsJet, lowBinBorderJet, highBinBorderJet); fhInclusiveJet->Sumw2();
   fhLeadingJet = new THnSparseF("leadingJet", "leadingJet", nAxesJet, nBinsJet, lowBinBorderJet, highBinBorderJet); fhLeadingJet->Sumw2();
+  fhCalorimeterJet = new THnSparseF("calorimeterJet", "calorimeterJet", nAxesJet, nBinsJet, lowBinBorderJet, highBinBorderJet); fhCalorimeterJet->Sumw2();
 
   // Set custom centrality bins for histograms
   fhInclusiveJet->SetBinEdges(3,wideCentralityBins);
   fhLeadingJet->SetBinEdges(3,wideCentralityBins);
+  fhCalorimeterJet->SetBinEdges(3,wideCentralityBins);
   
   // ======== THnSparses for jet pT closures ========
   
@@ -361,12 +373,15 @@ void JetBackgroundHistograms::CreateHistograms(){
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane] = new THnSparseF(Form("inclusiveJetEventPlaneOrder%d", iEventPlane+2), Form("inclusiveJetEventPlaneOrder%d", iEventPlane+2), nAxesJetEventPlaneCorrelation, nBinsJetPtEventPlaneCorrelation, lowBinBorderJetEventPlaneCorrelation, highBinBorderJetEventPlaneCorrelation); fhInclusiveJetEventPlane[iEventPlane]->Sumw2();
     fhLeadingJetEventPlane[iEventPlane] = new THnSparseF(Form("leadingJetEventPlaneOrder%d", iEventPlane+2), Form("leadingJetEventPlaneOrder%d", iEventPlane+2), nAxesJetEventPlaneCorrelation, nBinsJetPtEventPlaneCorrelation, lowBinBorderJetEventPlaneCorrelation, highBinBorderJetEventPlaneCorrelation); fhLeadingJetEventPlane[iEventPlane]->Sumw2();
+    fhCalorimeterJetEventPlane[iEventPlane] = new THnSparseF(Form("calorimeterJetEventPlaneOrder%d", iEventPlane+2), Form("calorimeterJetEventPlaneOrder%d", iEventPlane+2), nAxesJetEventPlaneCorrelation, nBinsJetPtEventPlaneCorrelation, lowBinBorderJetEventPlaneCorrelation, highBinBorderJetEventPlaneCorrelation); fhCalorimeterJetEventPlane[iEventPlane]->Sumw2();
     
     // Set custom centrality bins for histograms
     fhInclusiveJetEventPlane[iEventPlane]->SetBinEdges(1,jetPtBinsEventPlane);
     fhLeadingJetEventPlane[iEventPlane]->SetBinEdges(1,jetPtBinsEventPlane);
+    fhCalorimeterJetEventPlane[iEventPlane]->SetBinEdges(1,jetPtBinsEventPlane);
     fhInclusiveJetEventPlane[iEventPlane]->SetBinEdges(2,wideCentralityBins);
     fhLeadingJetEventPlane[iEventPlane]->SetBinEdges(2,wideCentralityBins);
+    fhCalorimeterJetEventPlane[iEventPlane]->SetBinEdges(2,wideCentralityBins);
   }
 
 }
@@ -386,11 +401,13 @@ void JetBackgroundHistograms::Write() const{
   fhPtHatWeighted->Write();
   fhInclusiveJet->Write();
   fhLeadingJet->Write();
+  fhCalorimeterJet->Write();
   fhJetPtClosure->Write();
 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane]->Write();
     fhLeadingJetEventPlane[iEventPlane]->Write();
+    fhCalorimeterJetEventPlane[iEventPlane]->Write();
   }
 }
 

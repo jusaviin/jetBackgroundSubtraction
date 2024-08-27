@@ -21,10 +21,13 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer() :
   fCentralityWeightFunctionPeripheral(0),
   fSmearingFunction(0),
   fJetCorrector2018(),
+  fCaloJetCorrector2018(),
   fRng(0),
   fJetType(0),
   fJetSubtraction(2),
   fDebugLevel(0),
+  fSmearResolution(false),
+  fDoCalorimeterJets(false),
   fVzWeight(1),
   fCentralityWeight(1),
   fPtHatWeight(1),
@@ -62,6 +65,7 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(std::vector<TString> fileNameVector
   fCard(newCard),
   fHistograms(0),
   fJetCorrector2018(),
+  fCaloJetCorrector2018(),
   fVzWeight(1),
   fCentralityWeight(1),
   fPtHatWeight(1),
@@ -121,6 +125,8 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(const JetBackgroundAnalyzer& in) :
   fJetType(in.fJetType),
   fJetSubtraction(in.fJetSubtraction),
   fDebugLevel(in.fDebugLevel),
+  fSmearResolution(in.fSmearResolution),
+  fDoCalorimeterJets(in.fDoCalorimeterJets),
   fVzWeight(in.fVzWeight),
   fCentralityWeight(in.fCentralityWeight),
   fPtHatWeight(in.fPtHatWeight),
@@ -162,6 +168,8 @@ JetBackgroundAnalyzer& JetBackgroundAnalyzer::operator=(const JetBackgroundAnaly
   fJetType = in.fJetType;
   fJetSubtraction = in.fJetSubtraction;
   fDebugLevel = in.fDebugLevel;
+  fSmearResolution = in.fSmearResolution;
+  fDoCalorimeterJets = in.fDoCalorimeterJets;
   fVzWeight = in.fVzWeight;
   fCentralityWeight = in.fCentralityWeight;
   fPtHatWeight = in.fPtHatWeight;
@@ -191,6 +199,7 @@ JetBackgroundAnalyzer::~JetBackgroundAnalyzer(){
   delete fHistograms;
   if(fVzWeightFunction) delete fVzWeightFunction;
   if(fJetCorrector2018) delete fJetCorrector2018;
+  if(fCaloJetCorrector2018) delete fCaloJetCorrector2018;
   if(fEnergyResolutionSmearingFinder) delete fEnergyResolutionSmearingFinder;
   if(fCentralityWeightFunctionCentral) delete fCentralityWeightFunctionCentral;
   if(fCentralityWeightFunctionPeripheral) delete fCentralityWeightFunctionPeripheral;
@@ -236,6 +245,8 @@ void JetBackgroundAnalyzer::ReadConfigurationFromCard(){
   fJetType = fCard->Get("JetType");               // Select the type of analyzed jets (Reconstructed / Generator level)
   fJetSubtraction = fCard->Get("JetSubtraction"); // Select the background subtracted algorithm (Calo PU, PFCS, flow PFCS)
   fJetAxis = fCard->Get("JetAxis");               // Select between E-escheme and WTA axes
+  fSmearResolution = (fCard->Get("SmearResolution") == 1); // Flag for smearing the jet resolution in MC
+  fDoCalorimeterJets = (fCard->Get("DoCaloJets") == 1);    // Flag for filling calorimeter jet histograms
 
   //***************************************
   //            Jet pT closure
@@ -321,17 +332,15 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   
   // For 2018 PbPb and 2017 pp data, we need to correct jet pT
   std::string correctionFileRelative = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
-  
-  // For calo jets, use the correction files for calo jets (otherwise same name, but replace PF with Calo)
-  if(fJetSubtraction == 0){
-    size_t pfIndex = 0;
-    pfIndex = correctionFileRelative.find("PF", pfIndex);
-    correctionFileRelative.replace(pfIndex, 2, "Calo");
-  }
+  std::string correctionFileCalo = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4Calo.txt";
   
   vector<string> correctionFiles;
   correctionFiles.push_back(correctionFileRelative);
   fJetCorrector2018 = new JetCorrector(correctionFiles);
+
+  vector<string> correctionFilesCalo;
+  correctionFilesCalo.push_back(correctionFileCalo);
+  fCaloJetCorrector2018 = new JetCorrector(correctionFilesCalo);
   
   //************************************************
   //      Find forest readers for data files
@@ -549,8 +558,10 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           jetPt = fJetCorrector2018->GetCorrectedPT();
           
           // Apply gaussian smearing to take into account overly optimistic jet energy resolution
-          smearingFactor = GetSmearingFactor(jetPt, jetEta, centrality);
-          jetPt = jetPt * fRng->Gaus(1,smearingFactor);
+          if(fSmearResolution){
+            smearingFactor = GetSmearingFactor(jetPt, jetEta, centrality);
+            jetPt = jetPt * fRng->Gaus(1,smearingFactor);
+          }
             
         } // Jet pT correction
           
@@ -610,12 +621,16 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           while(jetEventPlaneDeltaPhi > (1.5*TMath::Pi())){jetEventPlaneDeltaPhi += -2*TMath::Pi();}
           while(jetEventPlaneDeltaPhi < (-0.5*TMath::Pi())){jetEventPlaneDeltaPhi += 2*TMath::Pi();}
 
-          // Fill the jet - event plane correlation histograms
-          fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
-          fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
-          fillerEventPlane[2] = centrality;             // Axis 2: centrality
+          // Require matching generator level jet with at least 80 GeV
+          if(fEventReader->HasMatchingGenJet(jetIndex)){
 
-          fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
+            // Fill the jet - event plane correlation histograms
+            fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
+            fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
+            fillerEventPlane[2] = centrality;             // Axis 2: centrality
+
+            fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
+          }
 
         }
         
@@ -659,6 +674,69 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         }
       } // Filling leading jet histograms
 
+      //*******************************************************************
+      //     If selected, fill the histograms also for calorimeter jets
+      //*******************************************************************
+      if(fDoCalorimeterJets){
+
+        nJets = fEventReader->GetNJets(fJetType);
+        for(Int_t jetIndex = 0; jetIndex < nJets; jetIndex++){
+
+          // Find the calorimeter jet kinematics
+          jetPt = fEventReader->GetCalorimeterJetPt(jetIndex);
+          jetPhi = fEventReader->GetCalorimeterJetPhi(jetIndex);
+          jetEta = fEventReader->GetCalorimeterJetEta(jetIndex);
+
+          // Select the jets from a defined eta region
+          if(TMath::Abs(jetEta) >= fJetEtaCut) continue; // Cut for jet eta
+
+          // Do jet energy correction for calorimeter jets
+          fCaloJetCorrector2018->SetJetPT(jetPt);
+          fCaloJetCorrector2018->SetJetEta(jetEta);
+          fCaloJetCorrector2018->SetJetPhi(jetPhi);
+          
+          jetPt = fCaloJetCorrector2018->GetCorrectedPT();
+
+          // After the jet pT can been corrected, apply analysis jet pT cuts
+          if(jetPt < fJetMinimumPtCut) continue;
+          if(jetPt > fJetMaximumPtCut) continue;
+
+          //************************************************
+          //         Fill histograms for all jets
+          //************************************************
+          
+          // Fill the axes in correct order
+          fillerJet[0] = jetPt;             // Axis 0 = calorimeter jet pT
+          fillerJet[1] = jetPhi;            // Axis 1 = calorimeter jet phi
+          fillerJet[2] = jetEta;            // Axis 2 = calorimeter jet eta
+          fillerJet[3] = centrality;        // Axis 3 = centrality
+          fillerJet[4] = 0;                 // Axis 4 = not used for calorimeter jets
+          fillerJet[5] = 0;                 // Axis 5 = not used for calorimeter jets
+          
+          fHistograms->fhCalorimeterJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
+
+          //**********************************************************************
+          //      Fill histograms for calorimeter jet - event plane correlation
+          //**********************************************************************
+
+          for(int iFlow = 0; iFlow < nFlowComponentsEP; iFlow++){
+          
+            // Determine the deltaPhi between jet axis and the event plane in the interval [-pi/2,3pi/2]
+            jetEventPlaneDeltaPhi = jetPhi - eventPlaneAngle[iFlow];
+            while(jetEventPlaneDeltaPhi > (1.5*TMath::Pi())){jetEventPlaneDeltaPhi += -2*TMath::Pi();}
+            while(jetEventPlaneDeltaPhi < (-0.5*TMath::Pi())){jetEventPlaneDeltaPhi += 2*TMath::Pi();}
+
+            // Fill the jet - event plane correlation histograms
+            fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
+            fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
+            fillerEventPlane[2] = centrality;             // Axis 2: centrality
+
+            fHistograms->fhCalorimeterJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
+          } // Flow order loop
+
+        } // Calorimeter jet loop
+      } // Calorimeter jet if
+
       //**************************************************
       //       Second jet loop for jet pT closure
       //**************************************************
@@ -696,8 +774,10 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         reconstructedJetPt = fJetCorrector2018->GetCorrectedPT();
           
         // Apply gaussian smearing to take into account too good jet energy resolution
-        smearingFactor = GetSmearingFactor(reconstructedJetPt, reconstructedJetEta, centrality);
-        reconstructedJetPt = reconstructedJetPt * fRng->Gaus(1,smearingFactor);
+        if(fSmearResolution){
+          smearingFactor = GetSmearingFactor(reconstructedJetPt, reconstructedJetEta, centrality);
+          reconstructedJetPt = reconstructedJetPt * fRng->Gaus(1,smearingFactor);
+        }
 
         // Define index for jet flavor using algoritm: [-6,-1] U [1,6] -> kQuark, 21 -> kGluon, anything else -> kUndetermined
         jetFlavor = JetBackgroundHistograms::kUndetermined;

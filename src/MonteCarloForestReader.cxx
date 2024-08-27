@@ -39,6 +39,10 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fGenJetWTAPhiBranch(0),
   fGenJetEtaBranch(0),
   fGenJetWTAEtaBranch(0),
+  fnCaloJetsBranch(0),
+  fCaloJetPtBranch(0),
+  fCaloJetPhiBranch(0),
+  fCaloJetEtaBranch(0),
   fnTracksBranch(0),
   fTrackPtBranch(0),
   fTrackPtErrorBranch(0),
@@ -69,6 +73,7 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fClusterCompatibilityFilterBit(1),
   fnJets(0),
   fnGenJets(0),
+  fnCaloJets(0),
   fEventWeight(1),
   fJetPtArray(),
   fJetPhiArray(),
@@ -85,6 +90,9 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fGenJetWTAPhiArray(),
   fGenJetEtaArray(),
   fGenJetWTAEtaArray(),
+  fCaloJetPtArray(),
+  fCaloJetPhiArray(),
+  fCaloJetEtaArray(),
   fnTracks(0),
   fTrackPtVector(0),
   fTrackPtErrorVector(0),
@@ -157,6 +165,10 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fGenJetWTAPhiBranch(0),
   fGenJetEtaBranch(0),
   fGenJetWTAEtaBranch(0),
+  fnCaloJetsBranch(0),
+  fCaloJetPtBranch(0),
+  fCaloJetPhiBranch(0),
+  fCaloJetEtaBranch(0),
   fnTracksBranch(0),
   fTrackPtBranch(0),
   fTrackPtErrorBranch(0),
@@ -187,6 +199,7 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fClusterCompatibilityFilterBit(1),
   fnJets(0),
   fnGenJets(0),
+  fnCaloJets(0),
   fEventWeight(1),
   fJetPtArray(),
   fJetPhiArray(),
@@ -203,6 +216,9 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fGenJetWTAPhiArray(),
   fGenJetEtaArray(),
   fGenJetWTAEtaArray(),
+  fCaloJetPtArray(),
+  fCaloJetPhiArray(),
+  fCaloJetEtaArray(),
   fnTracks(0),
   fTrackPtVector(0),
   fTrackPtErrorVector(0),
@@ -271,6 +287,10 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fGenJetWTAPhiBranch(in.fGenJetWTAPhiBranch),
   fGenJetEtaBranch(in.fGenJetEtaBranch),
   fGenJetWTAEtaBranch(in.fGenJetWTAEtaBranch),
+  fnCaloJetsBranch(in.fnCaloJetsBranch),
+  fCaloJetPtBranch(in.fCaloJetPtBranch),
+  fCaloJetPhiBranch(in.fCaloJetPhiBranch),
+  fCaloJetEtaBranch(in.fCaloJetEtaBranch),
   fnTracksBranch(in.fnTracksBranch),
   fTrackPtBranch(in.fTrackPtBranch),
   fTrackPtErrorBranch(in.fTrackPtErrorBranch),
@@ -301,6 +321,7 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fClusterCompatibilityFilterBit(in.fClusterCompatibilityFilterBit),
   fnJets(in.fnJets),
   fnGenJets(in.fnGenJets),
+  fnCaloJets(in.fnCaloJets),
   fEventWeight(in.fEventWeight),
   fnTracks(in.fnTracks),
   fTrackPtVector(in.fTrackPtVector),
@@ -343,6 +364,9 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
     fGenJetWTAPhiArray[i] = in.fGenJetWTAPhiArray[i];
     fGenJetEtaArray[i] = in.fGenJetEtaArray[i];
     fGenJetWTAEtaArray[i] = in.fGenJetWTAEtaArray[i];
+    fCaloJetPtArray[i] = in.fCaloJetPtArray[i];
+    fCaloJetPhiArray[i] = in.fCaloJetPhiArray[i];
+    fCaloJetEtaArray[i] = in.fCaloJetEtaArray[i];
   }
 }
 
@@ -386,6 +410,10 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fGenJetWTAPhiBranch = in.fGenJetWTAPhiBranch;
   fGenJetEtaBranch = in.fGenJetEtaBranch;
   fGenJetWTAEtaBranch = in.fGenJetWTAEtaBranch;
+  fnCaloJetsBranch = in.fnCaloJetsBranch;
+  fCaloJetPtBranch = in.fCaloJetPtBranch;
+  fCaloJetPhiBranch = in.fCaloJetPhiBranch;
+  fCaloJetEtaBranch = in.fCaloJetEtaBranch;
   fnTracksBranch = in.fnTracksBranch;
   fTrackPtBranch = in.fTrackPtBranch;
   fTrackPtErrorBranch = in.fTrackPtErrorBranch;
@@ -416,6 +444,7 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fClusterCompatibilityFilterBit = in.fClusterCompatibilityFilterBit;
   fnJets = in.fnJets;
   fnGenJets = in.fnGenJets;
+  fnCaloJets = in.fnCaloJets;
   fEventWeight = in.fEventWeight;
   fnTracks = in.fnTracks;
   
@@ -436,6 +465,9 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
     fGenJetWTAPhiArray[i] = in.fGenJetWTAPhiArray[i];
     fGenJetEtaArray[i] = in.fGenJetEtaArray[i];
     fGenJetWTAEtaArray[i] = in.fGenJetWTAEtaArray[i];
+    fCaloJetPtArray[i] = in.fCaloJetPtArray[i];
+    fCaloJetPhiArray[i] = in.fCaloJetPhiArray[i];
+    fCaloJetEtaArray[i] = in.fCaloJetEtaArray[i];
   }
   
   // Copy the track vectors
@@ -549,6 +581,16 @@ void MonteCarloForestReader::Initialize(){
     
   fJetTree->SetBranchStatus("ngen",1);
   fJetTree->SetBranchAddress("ngen",&fnGenJets,&fnGenJetsBranch);
+
+  // Load the variables for calo jets
+  fJetTree->SetBranchStatus("ncalo", 1);
+  fJetTree->SetBranchAddress("ncalo", &fnCaloJets, &fnCaloJetsBranch);
+  fJetTree->SetBranchStatus("calopt", 1);
+  fJetTree->SetBranchAddress("calopt", &fCaloJetPtArray, &fCaloJetPtBranch);
+  fJetTree->SetBranchStatus("calophi", 1);
+  fJetTree->SetBranchAddress("calophi", &fCaloJetPhiArray, &fCaloJetPhiBranch);
+  fJetTree->SetBranchStatus("caloeta", 1);
+  fJetTree->SetBranchAddress("caloeta", &fCaloJetEtaArray, &fCaloJetEtaBranch);
   
   // Connect the branches to the track tree
   /*
@@ -817,10 +859,16 @@ Int_t MonteCarloForestReader::GetNJets() const{
   return fnJets;
 }
 
-// Getter for number of jets in an event
+// Getter for number of generator level jets in an event
 Int_t MonteCarloForestReader::GetNGeneratorJets() const{
   return fnGenJets;
 }
+
+// Getter for number of calorimeter jets in an event
+Int_t MonteCarloForestReader::GetNCalorimeterJets() const{
+  return fnCaloJets;
+}
+
 
 // Getter for jet pT
 Float_t MonteCarloForestReader::GetJetPt(Int_t iJet) const{
@@ -934,6 +982,21 @@ Float_t MonteCarloForestReader::GetGeneratorJetPhi(Int_t iJet) const{
 Float_t MonteCarloForestReader::GetGeneratorJetEta(Int_t iJet) const{
   if(fJetAxis == 0) return fGenJetEtaArray[iJet];
   return fGenJetWTAEtaArray[iJet];
+}
+
+// Getter for calorimeter jet pT
+Float_t MonteCarloForestReader::GetCalorimeterJetPt(Int_t iJet) const{
+  return fCaloJetPtArray[iJet];
+}
+
+// Getter for calorimeter jet phi
+Float_t MonteCarloForestReader::GetCalorimeterJetPhi(Int_t iJet) const{
+  return fCaloJetPhiArray[iJet];
+}
+
+// Getter for calorimeter jet eta
+Float_t MonteCarloForestReader::GetCalorimeterJetEta(Int_t iJet) const{
+  return fCaloJetEtaArray[iJet];
 }
 
 // Check if generator level jet has a matching reconstructed jet

@@ -98,6 +98,12 @@ public:
   Float_t GetGeneratorJetPhi(Int_t iJet) const;      // Getter for generator level jet phi
   Float_t GetGeneratorJetEta(Int_t iJet) const;      // Getter for generator level jet eta
 
+  // Getter for leaves in calorimeter jet tree
+  Int_t GetNCalorimeterJets() const;                   // Getter for number of calorimeter jets
+  Float_t GetCalorimeterJetPt(Int_t iJet) const;       // Getter for calorimeter jet pT
+  Float_t GetCalorimeterJetPhi(Int_t iJet) const;      // Getter for calorimeter jet phi
+  Float_t GetCalorimeterJetEta(Int_t iJet) const;      // Getter for calorimeter jet eta
+
   // Gen to reco matching
   Bool_t HasMatchingRecoJet(Int_t iJet) const;  // Check if generator level has a matching reconstructed jet
   Int_t GetMatchingRecoIndex(Int_t iJet) const; // Get the matching reconstructed jet index for the given generator level jet
@@ -184,6 +190,11 @@ private:
   TBranch* fGenJetEtaBranch;     // Branch for generator level jet eta
   TBranch* fGenJetWTAEtaBranch;  // Branch for generator level jet eta
 
+  TBranch* fnCaloJetsBranch;     // Branch for number of calorimeter jets
+  TBranch* fCaloJetPtBranch;     // Branch for calo jet pT
+  TBranch* fCaloJetPhiBranch;    // Branch for calo jet phi
+  TBranch* fCaloJetEtaBranch;    // Branch for calo jet eta
+
   // Branches for track tree
   TBranch* fnTracksBranch;                     // Branch for number of tracks
   TBranch* fTrackPtBranch;                     // Branch for track pT
@@ -223,6 +234,7 @@ private:
   // Leaves for jet tree
   Int_t fnJets;          // number of jets in an event
   Int_t fnGenJets;       // Number of generator level jets in an event
+  Int_t fnCaloJets;      // Number of calo jets in an event
   Float_t fEventWeight;  // jet weight in the MC tree
   
   Float_t fJetPtArray[fnMaxJet] = {0};         // pT:s of all the jets in an event
@@ -243,6 +255,10 @@ private:
   Float_t fGenJetWTAPhiArray[fnMaxJet] = {0};   // WTA phis of the generator level jets in an event
   Float_t fGenJetEtaArray[fnMaxJet] = {0};      // etas of the generator level jets in an event
   Float_t fGenJetWTAEtaArray[fnMaxJet] = {0};   // WTA etas of the generator level jets in an event
+
+  Float_t fCaloJetPtArray[fnMaxJet] = {0};      // pT:s of the calorimeter jets in an event
+  Float_t fCaloJetPhiArray[fnMaxJet] = {0};     // phis of the calorimeter jets in an event
+  Float_t fCaloJetEtaArray[fnMaxJet] = {0};     // etas of the calorimeter jets in an event
   
   // Leaves for the track tree regardless of forest type
   Int_t fnTracks;  // Number of tracks

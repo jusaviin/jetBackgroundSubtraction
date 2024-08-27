@@ -1405,10 +1405,14 @@ TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEventPlane(int iOrd
   return GetHistogramJetEventPlane(iOrder, kInclusiveJet, iCentrality, iJetPt);
 }
 
-
 // Getter for leading jet-event plane histograms
 TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetEventPlane(int iOrder, int iCentrality, int iJetPt){
   return GetHistogramJetEventPlane(iOrder, kLeadingJet, iCentrality, iJetPt);
+}
+
+// Getter for calorimeter jet-event plane histograms
+TH1D* JetBackgroundHistogramManager::GetHistogramCalorimeterJetEventPlane(int iOrder, int iCentrality, int iJetPt){
+  return GetHistogramJetEventPlane(iOrder, kCalorimeterJet, iCentrality, iJetPt);
 }
 
 

@@ -42,11 +42,13 @@ public:
   TH1F* fhCentralityWeighted;      // Weighted centrality distribution (only meaningful for MC)
   TH1F* fhPtHat;                   // pT hat for MC events (only meaningful for MC)
   TH1F* fhPtHatWeighted;           // Weighted pT hat distribution
-  THnSparseF* fhInclusiveJet; // Inclusive jet information
-  THnSparseF* fhLeadingJet;   // Leading jet information
-  THnSparseF* fhJetPtClosure; // Jet pT closure histograms. Also information for response matrix.
+  THnSparseF* fhInclusiveJet;   // Inclusive jet information
+  THnSparseF* fhLeadingJet;     // Leading jet information
+  THnSparseF* fhCalorimeterJet; // Calorimeter jet information
+  THnSparseF* fhJetPtClosure;   // Jet pT closure histograms. Also information for response matrix.
   THnSparseF *fhInclusiveJetEventPlane[knEventPlanes];  // Correlation between jets and event plane angles
   THnSparseF *fhLeadingJetEventPlane[knEventPlanes];    // Correlation between leading jets and event plane angles
+  THnSparseF *fhCalorimeterJetEventPlane[knEventPlanes];  // Correlation between calorimeter jets and event plane angles
 
 private:
   

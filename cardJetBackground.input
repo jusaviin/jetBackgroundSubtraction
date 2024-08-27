@@ -17,6 +17,8 @@ MaxJetPtCut 5020           # Maximum pT of a leading jet accepted in the analysi
 MinMaxTrackPtFraction 0.01 # Minimum fraction of jet pT taken by the highest pT track in jet
 MaxMaxTrackPtFraction 0.98 # Maximum fraction of jet pT taken by the highest pT track in jet
 MinJetPtClosure 80         # Minimum generator level jet pT for closure histograms
+SmearResolution 0          # 0 = Do not smear MC resolution. 1 = Smear MC resolution to match data
+DoCaloJets 0               # 0 = Do not fill histograms for calo jets. 1 = Fill histograms for calo jets
 
 # Cuts for event selection
 ZVertexCut 15       # Maximum vz value for accepted tracks

@@ -65,6 +65,7 @@ public:
   TF1* fCentralityWeightFunctionPeripheral;      // Weighting function for peripheral centrality classes. Needed for MC.
   TF1* fSmearingFunction;                        // Additional smearing for jets. Needed in systematic uncertainty study.
   JetCorrector* fJetCorrector2018;               // Class for making jet energy correction for 2018 data
+  JetCorrector* fCaloJetCorrector2018;           // Class for making jet energy correction for calorimeter jets in 2018 data
   JetMetScalingFactorManager* fEnergyResolutionSmearingFinder; // Manager to find proper jet energy resolution scaling factors provided by the JetMet group
   TRandom3* fRng;                                // Random number generator
   
@@ -72,6 +73,8 @@ public:
   Int_t fJetType;                    // Type of jets used for analysis. 0 = Reconstructed jets, 1 = Generator level jets
   Int_t fJetSubtraction;             // Background subtraction algorithm. 0 = Calo jets with PU, 1 = PF jets with CS, 2 = PF jets with flow CS 
   Int_t fDebugLevel;                 // Amount of debug messages printed to console
+  Bool_t fSmearResolution;           // Flag for smearing the resolution in MC
+  Bool_t fDoCalorimeterJets;         // Flag for filling calorimeter jet histograms
   
   // Weights for filling the MC histograms
   Double_t fVzWeight;                // Weight for vz in MC

@@ -21,7 +21,7 @@
 class JetBackgroundHistogramManager {
 
   // Possible data types to be read with the reader class
-  enum enumJetType {kInclusiveJet, kLeadingJet, knJetTypes};
+  enum enumJetType {kInclusiveJet, kLeadingJet, kCalorimeterJet, knJetTypes};
  
 public:
   
@@ -35,8 +35,8 @@ public:
 private:
   
   // Naming for jet histograms
-  const char* fJetHistogramName[knJetTypes] = {"inclusiveJet", "leadingJet"};
-  const char* fJetAxisName[knJetTypes] = {"Inclusive jet", "Leading jet"};
+  const char* fJetHistogramName[knJetTypes] = {"inclusiveJet", "leadingJet", "calorimeterJet"};
+  const char* fJetAxisName[knJetTypes] = {"Inclusive jet", "Leading jet", "Calorimeter jet"};
   
   // Naming for jet initiating particle
   const char* fInitialPartonName[JetBackgroundHistograms::knInitialPartonTypes+1] = {"_quark","_gluon","_undetermined",""};
@@ -120,6 +120,7 @@ public:
   TH1D* GetHistogramJetEventPlane(int iOrder, int iJetType, int iCentrality, int iJetPt = -1);
   TH1D* GetHistogramInclusiveJetEventPlane(int iOrder, int iCentrality, int iJetPt = -1);
   TH1D* GetHistogramLeadingJetEventPlane(int iOrder, int iCentrality, int iJetPt = -1);
+  TH1D* GetHistogramCalorimeterJetEventPlane(int iOrder, int iCentrality, int iJetPt = -1);
   
   // Getters for the loaded centrality and track pT bins
   int GetFirstCentralityBin() const;          // Get the first loaded centrality bin
