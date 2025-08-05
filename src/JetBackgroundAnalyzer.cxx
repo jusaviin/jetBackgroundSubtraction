@@ -400,11 +400,13 @@ void JetBackgroundAnalyzer::RunAnalysis(){
     //************************************************
     //         Main event loop for each file
     //************************************************
+
+    //Int_t selectedEvent = 122;
     
+    //for(Int_t iEvent = selectedEvent; iEvent < selectedEvent+1; iEvent++){ // nEvents
     for(Int_t iEvent = 0; iEvent < nEvents; iEvent++){ // nEvents
 
-      if(iEvent != 122) continue;
-      cout << "Analyzing event " << iEvent << endl;
+      //cout << "Analyzing event " << iEvent << endl;
 
       // For each event, chack that the file stays open:
       // This is to try to combat file read errors occasionally happening during CRAB running.
