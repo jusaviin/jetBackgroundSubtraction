@@ -578,6 +578,14 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         //jetEta = fEventReader->GetMatchedEta(fJetType, jetIndex);
         //jetPhi = fEventReader->GetMatchedPhi(fJetType, jetIndex);
 
+        if(jetPt > 80 && fEventReader->GetMatchedPt(fJetType, jetIndex) < 80){
+          cout << "Reco jet above 80 and gen jet below 80 in event " << iEvent << endl;
+        }
+
+        if(jetPt < 80 && fEventReader->GetMatchedPt(fJetType, jetIndex) > 80){
+          cout << "Reco jet below 80 and gen jet above 80 in event " << iEvent << endl;
+        }
+
 
         // After the jet pT can been corrected, apply analysis jet pT and eta cuts
         if(TMath::Abs(jetEta) >= fJetEtaCut) continue;
