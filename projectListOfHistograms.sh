@@ -35,4 +35,5 @@ HISTOGRAMS=${HISTOGRAMS:-31}
 while read -r FILENAME; do
   OUTPUTFILENAME="eventPlaneCorrelation/jetBackgroundHistograms_${FILENAME:27}"
   ./projectHistograms.sh $FILENAME $OUTPUTFILENAME -h $HISTOGRAMS  
+  #echo "$FILENAME $OUTPUTFILENAME -h $HISTOGRAMS"  
 done < $INPUTLIST

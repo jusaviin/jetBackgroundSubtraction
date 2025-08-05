@@ -531,8 +531,6 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         //  ======== Apply jet quality cuts ========
         //  ========================================
           
-        if(TMath::Abs(jetEta) >= fJetEtaCut) continue; // Cut for jet eta
-          
         // No jet quality cuts for generator level jets
         if(!(fJetType == MonteCarloForestReader::kGeneratorLevelJet)){              
           if(fMinimumMaxTrackPtFraction >= fEventReader->GetJetMaxTrackPt(jetIndex)/fEventReader->GetJetRawPt(jetIndex)){
@@ -564,10 +562,6 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           }
             
         } // Jet pT correction
-          
-        // After the jet pT can been corrected, apply analysis jet pT cuts
-        if(jetPt < fJetMinimumPtCut) continue;
-        if(jetPt > fJetMaximumPtCut) continue;
 
         // Check if the current jet has a matching jet
         matchingJetExists = 0;
@@ -577,6 +571,18 @@ void JetBackgroundAnalyzer::RunAnalysis(){
             matchingJetExists = 1;
           }
         }
+
+        // TODO Test: fill jet-event plane histograms using matched jets // axis instead
+        if(!matchingJetExists) continue;
+        //jetPt = fEventReader->GetMatchedPt(fJetType, jetIndex);
+        //jetEta = fEventReader->GetMatchedEta(fJetType, jetIndex);
+        //jetPhi = fEventReader->GetMatchedPhi(fJetType, jetIndex);
+
+
+        // After the jet pT can been corrected, apply analysis jet pT and eta cuts
+        if(TMath::Abs(jetEta) >= fJetEtaCut) continue;
+        if(jetPt < fJetMinimumPtCut) continue;
+        if(jetPt > fJetMaximumPtCut) continue;
 
         // Find the jet flavor and translate it into a quark [-6,-1] U [1,6] or gluon (21)
         // In the jet flavor is not any of these values, it remains undeterined
@@ -606,7 +612,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         fillerJet[2] = jetEta;            // Axis 2 = any jet eta
         fillerJet[3] = centrality;        // Axis 3 = centrality
         fillerJet[4] = jetFlavor;         // Axis 4 = flavor of the jet
-        fillerJet[5] = matchingJetExists; // Axis 5 = flag is matching jet exists
+        fillerJet[5] = matchingJetExists; // Axis 5 = flag if matching jet exists
           
         fHistograms->fhInclusiveJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
 
@@ -621,16 +627,12 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           while(jetEventPlaneDeltaPhi > (1.5*TMath::Pi())){jetEventPlaneDeltaPhi += -2*TMath::Pi();}
           while(jetEventPlaneDeltaPhi < (-0.5*TMath::Pi())){jetEventPlaneDeltaPhi += 2*TMath::Pi();}
 
-          // Require matching generator level jet with at least 80 GeV
-          if(fEventReader->HasMatchingGenJet(jetIndex)){
+          // Fill the jet - event plane correlation histograms
+          fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
+          fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
+          fillerEventPlane[2] = centrality;             // Axis 2: centrality
 
-            // Fill the jet - event plane correlation histograms
-            fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
-            fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
-            fillerEventPlane[2] = centrality;             // Axis 2: centrality
-
-            fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
-          }
+          fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
 
         }
         
@@ -679,7 +681,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       //*******************************************************************
       if(fDoCalorimeterJets){
 
-        nJets = fEventReader->GetNJets(fJetType);
+        nJets = fEventReader->GetNCalorimeterJets();
         for(Int_t jetIndex = 0; jetIndex < nJets; jetIndex++){
 
           // Find the calorimeter jet kinematics

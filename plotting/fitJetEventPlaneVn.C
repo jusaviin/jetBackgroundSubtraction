@@ -30,22 +30,14 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
 
   } else {
 
-    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_generatorJets_fullRun2MC_2024-07-29.root"));
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundHistograms_genJets_2024-08-10.root"));
     jetLegendString.push_back("Gen jets");
-    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_defaultFlowJets_fullRun2MC_2024-07-29.root"));
-    jetLegendString.push_back("Default flow jets");
-    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt15_2024-07-30.root"));
-    //jetLegendString.push_back("Iterative flow, 15 GeV");
-    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt20_2024-07-30.root"));
-    //jetLegendString.push_back("Iterative flow, 20 GeV");
-    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt30_2024-07-30.root"));
-    //jetLegendString.push_back("Iterative flow, 30 GeV");
-    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt40_2024-08-01.root"));
-    jetLegendString.push_back("Iterative flow, 40 GeV");
-    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt50_2024-08-01.root"));
-    //jetLegendString.push_back("Iterative flow, 50 GeV");
-    //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_iterativeFlowSubtraction_minJetPt60_2024-08-01.root"));
-    //jetLegendString.push_back("Iterative flow, 60 GeV");
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundAnalysis_optimizedCutFlowJets_ptFromMatchedGenJet_eventPlaneProjection_2025-07-23.root"));
+    jetLegendString.push_back("Optimized flow with gen p_{T}");
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundAnalysis_optimizedCutFlowJetsNoIter_ptFromMatchedGenJet_eventPlaneProjection_2025-07-23.root"));
+    jetLegendString.push_back("No iter optimized jets with gen p_{T}");
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundAnalysis_defaultFlowJets_ptFromMatchedGenJet_eventPlaneProjected_2025-07-22.root"));
+    jetLegendString.push_back("Default flow with gen p_{T}");
   }
 
   // Create a vector of cards from all input files
@@ -62,6 +54,16 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   TString jetTypeString[nJetType] = {"inclusiveJet", "leadingJet"};
   TString looseJetTypeString[nJetType] = {"inclusive jet", "leading jet"};
   int iJetType = 0; // Select here 0 for inclusive jet, 1 for leading jet
+
+  // If legend says were are doing calo jets, read the calo jets from the file
+  std::vector<int> jetTypeVector;
+  for(TString legendString : jetLegendString){
+    if(legendString.Contains("alo")){
+      jetTypeVector.push_back(2);
+    } else {
+      jetTypeVector.push_back(iJetType);
+    }
+  }
   
   // Select the bin ranges that are analyzed
   // Default centrality bins: 4, 14, 34, 54, 94
@@ -136,11 +138,11 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
       iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
       for(auto jetPtBin : analyzedJetPtBin){
         if(jetPtBin.second == 0){
-          hJetEventPlane[iFile][iCentrality][nJetPtBins] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, iJetType, iCentralityMatched);
+          hJetEventPlane[iFile][iCentrality][nJetPtBins] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, jetTypeVector.at(iFile), iCentralityMatched);
         } else {
           iJetPt = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
           iJetPtMatched = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-          hJetEventPlane[iFile][iCentrality][iJetPt] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, iJetType, iCentralityMatched, iJetPtMatched);
+          hJetEventPlane[iFile][iCentrality][iJetPt] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, jetTypeVector.at(iFile), iCentralityMatched, iJetPtMatched);
         }
       } // Jet pT loop 
     } // Centrality loop

@@ -10,7 +10,7 @@ if [ "$#" -lt 2 ]; then
   echo "  Bit 1 = Load jet histograms (to set: 2)"
   echo "  Bit 2 = Load jet pT closure histograms (to set: 4)"
   echo "  Bit 3 = Load jet pT response matrices (to set: 8)"
-  echo "  Bit 4 = Load jet-event plane corerlation histograms (to set: 16)"
+  echo "  Bit 4 = Load jet-event plane correlation histograms (to set: 16)"
   exit
 fi
 

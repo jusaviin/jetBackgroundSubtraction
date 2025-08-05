@@ -4,39 +4,75 @@
 #include "JDrawer.h"
 #include <tuple>
 
+enum enumTupleDecoder{kGaussMean, kGaussSigma, kGaussMeanError, kGaussSigmaError, kGaussFitParameters}; // Components of the Gauss fit
+
 /*
  * Fit a Gauss function to a histogram and extract parameters from that
  *
- *  TH1* histogram = Histogram from which drawing range in searched
+ *  std::vector<TH1*> histogram = Vector of histograms that are fitted with a Gauss function
+ *  TString jetLegendString  = Descriptive string on how the file was produced
+ *  TString jetTypeString = String telling which jets are included
+ *  TString centralityBin = Centrality information included in the legend
+ *  TString ptBin = Jet pT information included in the legend
+ *  TString saveName = Name given to the figure while saving it
  *
- *  return: Gauss mean, Gauss sigma, Error for Gauss mean, Error for Gauss sigma
+ *  return: Gauss mean, Gauss sigma, Error for Gauss mean, Error for Gauss sigma for all fitted histograms
  */
-std::tuple<double,double,double,double> fitGauss(TH1* histogram, TString title = "", TString jetTypeString = "", TString centralityBin = "", TString ptBin = "",  TString saveName = ""){
-  histogram->Fit("gaus","","",0.5,1.5);
-  TF1* gaussFit = histogram->GetFunction("gaus");
+std::vector<std::tuple<double,double,double,double>> fitGauss(std::vector<TH1D*> histogram, std::vector<TString> jetLegendString, TString jetTypeString = "", TString centralityBin = "", TString ptBin = "",  TString saveName = ""){
+
+  // Fit quitly, do not draw to canvas automatically
+  std::vector<TF1*> gaussFit;
+  for(auto thisHistogram : histogram){
+    thisHistogram->Fit("gaus","Q0","",0.5,1.5);
+    gaussFit.push_back(thisHistogram->GetFunction("gaus"));
+  }
   
+  std::vector<std::tuple<double,double,double,double>> fitParameters;
   double gaussMean = 0;
   double gaussSigma = 0;
   double gaussMeanError = 0;
   double gaussSigmaError = 0;
   
-  if(gaussFit){
-    gaussMean = gaussFit->GetParameter(1);
-    gaussSigma = gaussFit->GetParameter(2);
-    gaussMeanError = gaussFit->GetParError(1);
-    gaussSigmaError = gaussFit->GetParError(2);
+  for(auto thisFit : gaussFit){
+    if(thisFit){
+      gaussMean = thisFit->GetParameter(1);
+      gaussSigma = thisFit->GetParameter(2);
+      gaussMeanError = thisFit->GetParError(1);
+      gaussSigmaError = thisFit->GetParError(2);
+      fitParameters.push_back(std::make_tuple(gaussMean,gaussSigma,gaussMeanError,gaussSigmaError));
+    }
   }
+
+  int nHistograms = histogram.size();
+
+  // TODO: Color for histograms
+  int markerStyle[] = {kOpenCircle, kOpenSquare, kOpenCross, kOpenStar};
+  int color[] = {kBlack,kRed,kBlue,kGreen+3,kMagenta,kCyan,kOrange,kViolet+3,kPink-7,kSpring+3,kAzure-7};
+
   
   // If title is given, print the fit
-  if(!title.EqualTo("")){
+  if(!jetTypeString.EqualTo("")){
     JDrawer *temporaryDrawer = new JDrawer();
-    temporaryDrawer->DrawHistogram(histogram,"Reco p_{T} / Gen p_{T}","Counts", " ");
-    TLegend *legend = new TLegend(0.57,0.68,0.8,0.93);
+    for(int iHistogram = 0; iHistogram < nHistograms; iHistogram++){
+      histogram.at(iHistogram)->SetMarkerStyle(markerStyle[iHistogram]);
+      histogram.at(iHistogram)->SetMarkerColor(color[iHistogram]);
+      histogram.at(iHistogram)->SetLineColor(color[iHistogram]);
+      if(iHistogram == 0){
+        temporaryDrawer->DrawHistogram(histogram.at(0),"Reco p_{T} / Gen p_{T}","Counts", " ");
+      } else {
+        histogram.at(iHistogram)->Draw("same");
+      }
+      gaussFit.at(iHistogram)->SetLineColor(color[iHistogram]);
+      gaussFit.at(iHistogram)->Draw("same");
+    }
+    TLegend *legend = new TLegend(0.61,0.6,0.83,0.93);
     legend->SetFillStyle(0);legend->SetBorderSize(0);legend->SetTextSize(0.05);legend->SetTextFont(62);
-    legend->SetHeader(title);
     legend->AddEntry((TObject*)0, jetTypeString, "");
     legend->AddEntry((TObject*)0, centralityBin, "");
     legend->AddEntry((TObject*)0, ptBin, "");
+    for(int iHistogram = 0; iHistogram < nHistograms; iHistogram++){
+      legend->AddEntry(histogram.at(iHistogram), jetLegendString.at(iHistogram), "pl");
+    }
     legend->Draw();
     
     if(!saveName.EqualTo("")){
@@ -45,7 +81,7 @@ std::tuple<double,double,double,double> fitGauss(TH1* histogram, TString title =
     
   }
   
-  return std::make_tuple(gaussMean,gaussSigma,gaussMeanError,gaussSigmaError);
+  return fitParameters;
 }
 
 /*
@@ -167,7 +203,7 @@ void constructJetPtClosures(TString inputFileList = ""){
 
   } else {
 
-    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundHistograms_defaultFlow_2024-08-10.root"));
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_noProbabilityCutForFlowFit_2024-08-02.root"));
     jetLegendString.push_back("Default flow");
     //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundHistograms_noProbabilityCuts_2024-08-09.root"));
     //jetLegendString.push_back("No probability cuts");
@@ -202,11 +238,11 @@ void constructJetPtClosures(TString inputFileList = ""){
   bool drawPhiClosure = false;
   
   bool includeQuarkGluon = (nFiles == 1); // Include only quark and only gluon jet curves is only one file is provided
-  bool drawGaussFitsPt = false;
+  bool drawGaussFitsPt = true;
     
   bool fitResolution = false;  // Fit the jet pT resolution histograms
   
-  bool saveFigures = false;  // Save the figures to file
+  bool saveFigures = true;  // Save the figures to file
   
   // ==================================================================
   // =================== Configuration ready ==========================
@@ -291,84 +327,104 @@ void constructJetPtClosures(TString inputFileList = ""){
   TString jetTypeString;
   TString gaussFitSaveString;
   int iCentrality, iCentralityMatched;
+  std::vector<TH1D*> fittedHistograms;
+  std::vector<std::tuple<double,double,double,double>> fitResults;
   
   // Read the reco/gen histograms from the file and fit them to construct the closure plots
-  for(int iFile = 0; iFile < nFiles; iFile++){
-    for(auto centralityBin : analyzedCentralityBin){
-      iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
-      iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
-      for(int iParton : partonIndices){
-        if(drawPtClosure){
-          for(int iGenJetPt = minGenPt; iGenJetPt < JetBackgroundHistogramManager::knGenJetPtBins; iGenJetPt++){
+  for(auto centralityBin : analyzedCentralityBin){
+    iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
+    for(int iParton : partonIndices){
+      if(drawPtClosure){
+        for(int iGenJetPt = minGenPt; iGenJetPt < JetBackgroundHistogramManager::knGenJetPtBins; iGenJetPt++){
 
-            // Read the reco/gen histogram from the file
+          // Read the reco/gen histogram from the file
+          fittedHistograms.clear();
+          for(int iFile = 0; iFile < nFiles; iFile++){
+            iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
             hRecoGenRatio[iFile][iGenJetPt][iCentrality][iParton] = closureHistograms.at(iFile)->GetHistogramJetPtClosure(iGenJetPt, JetBackgroundHistogramManager::knJetEtaBins, JetBackgroundHistogramManager::knJetPhiBins, iCentralityMatched, iParton);
+            fittedHistograms.push_back(hRecoGenRatio[iFile][iGenJetPt][iCentrality][iParton]);
+          }
           
-            // Fit a gauss to the histogram
-            if(drawGaussFitsPt){
-              genPtString = Form("%d < Gen p_{T} < %d", 50+10*iGenJetPt, 60+10*iGenJetPt);
-              centralityString = Form("Cent: %d-%d", centralityBin.first, centralityBin.second);
-              jetTypeString = Form("%s jets", jetTypeName[iParton].Data());
-              gaussFitSaveString = Form("figures/jetPtClosureGaussFit%sJets_T%dC%d.pdf", jetTypeName[iParton].Data(), iGenJetPt, iCentrality);
-              std::tie(gaussMean,gaussSigma,gaussMeanError,gaussSigmaError) = fitGauss(hRecoGenRatio[iFile][iGenJetPt][iCentrality][iParton], " ", jetTypeString, centralityString, genPtString, gaussFitSaveString);
-            } else {
-              std::tie(gaussMean,gaussSigma,gaussMeanError,gaussSigmaError) = fitGauss(hRecoGenRatio[iFile][iGenJetPt][iCentrality][iParton]);
-            }
+          // Fit a gauss to the histogram
+          if(drawGaussFitsPt){
+            genPtString = Form("%d < Gen p_{T} < %d", 50+10*iGenJetPt, 60+10*iGenJetPt);
+            centralityString = Form("Cent: %d-%d", centralityBin.first, centralityBin.second);
+            jetTypeString = Form("%s jets", jetTypeName[iParton].Data());
+            gaussFitSaveString = Form("figures/jetPtClosureGaussFit%sJets_T%dC%d.pdf", jetTypeName[iParton].Data(), iGenJetPt, iCentrality);
+            fitResults = fitGauss(fittedHistograms, jetLegendString, jetTypeString, centralityString, genPtString, gaussFitSaveString);
+          } else {
+            fitResults = fitGauss(fittedHistograms, jetLegendString);
+          }
           
-            // Fill the histogram with the fit parameters
-            hJetPtClosure[iFile][iCentrality][iParton]->SetBinContent(iGenJetPt+1,gaussMean);
-            hJetPtClosure[iFile][iCentrality][iParton]->SetBinError(iGenJetPt+1,gaussMeanError);
-            hJetPtClosureSigma[iFile][iCentrality][iParton]->SetBinContent(iGenJetPt+1,gaussSigma);
-            hJetPtClosureSigma[iFile][iCentrality][iParton]->SetBinError(iGenJetPt+1,gaussSigmaError);
+          // Fill the histogram with the fit parameters
+          for(int iFile = 0; iFile < nFiles; iFile++){
+            hJetPtClosure[iFile][iCentrality][iParton]->SetBinContent(iGenJetPt+1,std::get<kGaussMean>(fitResults.at(iFile)));
+            hJetPtClosure[iFile][iCentrality][iParton]->SetBinError(iGenJetPt+1,std::get<kGaussMeanError>(fitResults.at(iFile)));
+            hJetPtClosureSigma[iFile][iCentrality][iParton]->SetBinContent(iGenJetPt+1,std::get<kGaussSigma>(fitResults.at(iFile)));
+            hJetPtClosureSigma[iFile][iCentrality][iParton]->SetBinError(iGenJetPt+1,std::get<kGaussSigmaError>(fitResults.at(iFile)));
+          }
           
-          } // Generator level jet pT loop
-        } // pT closure if
+        } // Generator level jet pT loop
+      } // pT closure if
       
-        if(drawEtaClosure){
-          // For eta, bins from 9 to nBins-9 cover the region -1.6 < eta < 1.6
-          for(int iJetEta = 9; iJetEta < JetBackgroundHistogramManager::knJetEtaBins-9; iJetEta++){
+      if(drawEtaClosure){
+        // For eta, bins from 9 to nBins-9 cover the region -1.6 < eta < 1.6
+        for(int iJetEta = 9; iJetEta < JetBackgroundHistogramManager::knJetEtaBins-9; iJetEta++){
           
-            // Read the reco/gen histogram from the file
+          // Read the reco/gen histogram from the file
+          fittedHistograms.clear();
+          for(int iFile = 0; iFile < nFiles; iFile++){
+            iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
             hRecoGenRatioEta[iFile][iJetEta][iCentrality][iParton] = closureHistograms.at(iFile)->GetHistogramJetPtClosure(JetBackgroundHistogramManager::knGenJetPtBins, iJetEta, JetBackgroundHistogramManager::knJetPhiBins, iCentralityMatched, iParton);
+            fittedHistograms.push_back(hRecoGenRatioEta[iFile][iJetEta][iCentrality][iParton]);
+          }
           
-            // Fit a gauss to the histogram
-            std::tie(gaussMean,gaussSigma,gaussMeanError,gaussSigmaError) = fitGauss(hRecoGenRatioEta[iFile][iJetEta][iCentrality][iParton]);
+          // Fit a gauss to the histogram
+          fitResults = fitGauss(fittedHistograms, jetLegendString);
           
-            // Fill the histogram with the fit parameters
-            hJetPtClosureEta[iFile][iCentrality][iParton]->SetBinContent(iJetEta+1,gaussMean);
-            hJetPtClosureEta[iFile][iCentrality][iParton]->SetBinError(iJetEta+1,gaussMeanError);
-            hJetPtClosureSigmaEta[iFile][iCentrality][iParton]->SetBinContent(iJetEta+1,gaussSigma);
-            hJetPtClosureSigmaEta[iFile][iCentrality][iParton]->SetBinError(iJetEta+1,gaussSigmaError);
+          // Fill the histogram with the fit parameters
+          for(int iFile = 0; iFile < nFiles; iFile++){
+            hJetPtClosureEta[iFile][iCentrality][iParton]->SetBinContent(iJetEta+1,std::get<kGaussMean>(fitResults.at(iFile)));
+            hJetPtClosureEta[iFile][iCentrality][iParton]->SetBinError(iJetEta+1,std::get<kGaussMeanError>(fitResults.at(iFile)));
+            hJetPtClosureSigmaEta[iFile][iCentrality][iParton]->SetBinContent(iJetEta+1,std::get<kGaussSigma>(fitResults.at(iFile)));
+            hJetPtClosureSigmaEta[iFile][iCentrality][iParton]->SetBinError(iJetEta+1,std::get<kGaussSigmaError>(fitResults.at(iFile)));
+          }
           
-          } // Jet eta loop
-        } // eta closure if
+        } // Jet eta loop
+      } // eta closure if
 
-        if(drawPhiClosure){
+      if(drawPhiClosure){
 
-          // Loop over all jet phi bins
-          for(int iJetPhi = 0; iJetPhi < JetBackgroundHistogramManager::knJetPhiBins; iJetPhi++){
+        // Loop over all jet phi bins
+        for(int iJetPhi = 0; iJetPhi < JetBackgroundHistogramManager::knJetPhiBins; iJetPhi++){
 
-            // In PbPb, due to detector inefficiencies, we cut the region -0.1 < phi < 1.2
-            if((iJetPhi > 30) && (iJetPhi <46)) continue;
+          // In PbPb, due to detector inefficiencies, we cut the region -0.1 < phi < 1.2
+          if((iJetPhi > 30) && (iJetPhi <46)) continue;
           
-            // Read the reco/gen histogram from the file
+          // Read the reco/gen histogram from the file
+          fittedHistograms.clear();
+          for(int iFile = 0; iFile < nFiles; iFile++){
+            iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
             hRecoGenRatioPhi[iFile][iJetPhi][iCentrality][iParton] = closureHistograms.at(iFile)->GetHistogramJetPtClosure(JetBackgroundHistogramManager::knGenJetPtBins, JetBackgroundHistogramManager::knJetEtaBins, iJetPhi, iCentralityMatched, iParton);
+            fittedHistograms.push_back(hRecoGenRatioPhi[iFile][iJetPhi][iCentrality][iParton]);
+          }
           
-            // Fit a gauss to the histogram
-            std::tie(gaussMean,gaussSigma,gaussMeanError,gaussSigmaError) = fitGauss(hRecoGenRatioPhi[iFile][iJetPhi][iCentrality][iParton]);
+          // Fit a gauss to the histogram
+          fitResults = fitGauss(fittedHistograms, jetLegendString);
           
-            // Fill the histogram with the fit parameters
-            hJetPtClosurePhi[iFile][iCentrality][iParton]->SetBinContent(iJetPhi+1,gaussMean);
-            hJetPtClosurePhi[iFile][iCentrality][iParton]->SetBinError(iJetPhi+1,gaussMeanError);
-            hJetPtClosureSigmaPhi[iFile][iCentrality][iParton]->SetBinContent(iJetPhi+1,gaussSigma);
-            hJetPtClosureSigmaPhi[iFile][iCentrality][iParton]->SetBinError(iJetPhi+1,gaussSigmaError);
+          // Fill the histogram with the fit parameters
+          for(int iFile = 0; iFile < nFiles; iFile++){
+            hJetPtClosurePhi[iFile][iCentrality][iParton]->SetBinContent(iJetPhi+1,std::get<kGaussMean>(fitResults.at(iFile)));
+            hJetPtClosurePhi[iFile][iCentrality][iParton]->SetBinError(iJetPhi+1,std::get<kGaussMeanError>(fitResults.at(iFile)));
+            hJetPtClosureSigmaPhi[iFile][iCentrality][iParton]->SetBinContent(iJetPhi+1,std::get<kGaussSigma>(fitResults.at(iFile)));
+            hJetPtClosureSigmaPhi[iFile][iCentrality][iParton]->SetBinError(iJetPhi+1,std::get<kGaussSigmaError>(fitResults.at(iFile)));
+          }
           
-          } // Jet eta loop
-        } // eta closure if
+        } // Jet eta loop
+      } // eta closure if
       
-      } // Closure particle loop (quark/gluon/no selection)
-    } // Centrality loop
-  } // File loop
+    } // Closure particle loop (quark/gluon/no selection)
+  } // Centrality loop
   
   double minFitPt = 50+10*minGenPt;
   double maxFitPt = 500;
