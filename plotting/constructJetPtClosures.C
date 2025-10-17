@@ -140,6 +140,8 @@ void drawClosureHistogram(std::vector<TH1D*> histogram, JetBackgroundCard* card,
 
 /*
  * Macro for constructing jet pT closures and comparing them between different files
+ *
+ *  TString inputFileList = Text file containing all the input files that are compared in the plots
  */
 void constructJetPtClosures(TString inputFileList = ""){
 
@@ -284,7 +286,7 @@ void constructJetPtClosures(TString inputFileList = ""){
   double gaussSigma = 0;
   double gaussMeanError = 0;
   double gaussSigmaError = 0;
-  int minGenPt = 7;  // Set this to 7 to skip bins below 120 GeV
+  int minGenPt = 3;  // Set this to 7 to skip bins below 120 GeV. 3 cuts the bins below 80 GeV.
   TString genPtString;
   TString centralityString;
   TString jetTypeName[JetBackgroundHistograms::knInitialPartonTypes+1] = {"Quark", "Gluon", "Undetermined", "All"};

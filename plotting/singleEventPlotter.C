@@ -176,6 +176,10 @@ void singleEventPlotter(TString inputFileName, TString logFileName){
   flowFitPfCand->SetParameters(flowFitAmplitude, flowFitV1, flowFitEventPlane1, flowFitV2, flowFitEventPlane2, flowFitV3, flowFitEventPlane3, flowFitV4, flowFitEventPlane4);
   flowFitPfCand->SetLineColor(kGreen+3);
 
+  TF1* onlyV2PfCand = new TF1("onlyV2PfCand", "[0] * (1 + 2*[1]*cos(2*(x-[3])))", -TMath::Pi(), TMath::Pi());
+  onlyV2PfCand->SetParameters(flowFitAmplitude, flowFitV2, flowFitEventPlane2);
+  onlyV2PfCand->SetLineColor(kGreen+3);
+
   // Change line colors for histograms
   hPhiPythia->SetLineColor(kBlue);
   hPhiHydjet->SetLineColor(kRed);
@@ -238,7 +242,8 @@ void singleEventPlotter(TString inputFileName, TString logFileName){
 
   // Draw the flow fit to the same canvas
   flowFit->Draw("same");
-  flowFitPfCand->Draw("same");
+  //flowFitPfCand->Draw("same");
+  onlyV2PfCand->Draw("same");
 
   // Draw the jet location and determined event plane to the same figure
   maxValue = hPhiPythia->GetMaximum();
