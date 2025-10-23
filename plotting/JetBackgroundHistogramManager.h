@@ -22,6 +22,7 @@ class JetBackgroundHistogramManager {
 
   // Possible data types to be read with the reader class
   enum enumJetType {kInclusiveJet, kLeadingJet, kCalorimeterJet, knJetTypes};
+  enum enumFlowFit {kNoFlowFit, kFlowFit, knFlowFitFlags};
  
 public:
   
@@ -74,6 +75,9 @@ public:
 
   // Setter for jet-event plane correlation histograms
   void SetLoadJetEventPlaneHistograms(const bool loadOrNot);
+
+  // Setter for flow fit parameter debug histograms
+  void SetLoadFlowFitParameterHistograms(const bool loadOrNot);
   
   // Setters for ranges for different bins
   void SetCentralityBinRange(const int first, const int last);          // Setter for centrality bin range
@@ -92,35 +96,39 @@ public:
   TString GetSystem() const;  // Getter for collision system
   
   // Getters for event information histograms
-  TH1D* GetHistogramVertexZ() const;            // Getter for z-vertex histogram
-  TH1D* GetHistogramVertexZWeighted() const;    // Getter for weighted z-vertex histogram
-  TH1D* GetHistogramEvents() const;             // Getter for histogram for number of events surviving different event cuts
-  TH1D* GetHistogramCentrality() const;         // Getter for centrality histogram in all events
-  TH1D* GetHistogramCentralityWeighted() const; // Getter for weighted centrality histogram in all events
+  TH1D* GetHistogramVertexZ();            // Getter for z-vertex histogram
+  TH1D* GetHistogramVertexZWeighted();    // Getter for weighted z-vertex histogram
+  TH1D* GetHistogramEvents();             // Getter for histogram for number of events surviving different event cuts
+  TH1D* GetHistogramCentrality();         // Getter for centrality histogram in all events
+  TH1D* GetHistogramCentralityWeighted(); // Getter for weighted centrality histogram in all events
   
   // Getters for jet histograms
-  TH1D* GetHistogramJetPt(int iCentrality, int iJetType, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;     // Jet pT histograms
-  TH1D* GetHistogramInclusiveJetPt(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;     // Inclusive jet pT histograms
-  TH1D* GetHistogramLeadingJetPt(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;     // Leading jet pT histograms
-  TH1D* GetHistogramJetPhi(int iCentrality, int iJetType, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;    // Jet phi histograms
-  TH1D* GetHistogramInclusiveJetPhi(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;   // Inclusive jet phi histograms
-  TH1D* GetHistogramLeadingJetPhi(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;    // Leading jet phi histograms
-  TH1D* GetHistogramJetEta(int iCentrality, int iJetType, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;    // Jet eta histograms
-  TH1D* GetHistogramInclusiveJetEta(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;   // Inclusive jet eta histograms
-  TH1D* GetHistogramLeadingJetEta(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;    // Leading jet eta histograms
-  TH2D* GetHistogramJetEtaPhi(int iCentrality, int iJetType, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const; // 2D eta-phi histogram for jets
-  TH2D* GetHistogramInclusiveJetEtaPhi(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;  // 2D eta-phi histogram for inclusive jets
-  TH2D* GetHistogramLeadingJetEtaPhi(int iCentrality, int iParton = JetBackgroundHistograms::knInitialPartonTypes, int iMatch = JetBackgroundHistograms::knMatchingTypes) const;  // 2D eta-phi histogram for leading jets 
+  TH1D* GetHistogramJetPt(const int iCentrality, const int iJetType, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);     // Jet pT histograms
+  TH1D* GetHistogramInclusiveJetPt(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);     // Inclusive jet pT histograms
+  TH1D* GetHistogramLeadingJetPt(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);     // Leading jet pT histograms
+  TH1D* GetHistogramJetPhi(const int iCentrality, const int iJetType, const int iParton = JetBackgroundHistograms::knInitialPartonTypes,const  int iMatch = JetBackgroundHistograms::knMatchingTypes);    // Jet phi histograms
+  TH1D* GetHistogramInclusiveJetPhi(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);   // Inclusive jet phi histograms
+  TH1D* GetHistogramLeadingJetPhi(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);    // Leading jet phi histograms
+  TH1D* GetHistogramJetEta(const int iCentrality, const int iJetType, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);    // Jet eta histograms
+  TH1D* GetHistogramInclusiveJetEta(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);   // Inclusive jet eta histograms
+  TH1D* GetHistogramLeadingJetEta(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);    // Leading jet eta histograms
+  TH2D* GetHistogramJetEtaPhi(const int iCentrality, const int iJetType, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes); // 2D eta-phi histogram for jets
+  TH2D* GetHistogramInclusiveJetEtaPhi(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);  // 2D eta-phi histogram for inclusive jets
+  TH2D* GetHistogramLeadingJetEtaPhi(const int iCentrality, const int iParton = JetBackgroundHistograms::knInitialPartonTypes, const int iMatch = JetBackgroundHistograms::knMatchingTypes);  // 2D eta-phi histogram for leading jets 
 
-  // Getter for jet pT closure histograms
-  TH1D* GetHistogramJetPtClosure(const int iGenPtBin, const int iEtaBin, const int iPhiBin, const int iCentrality, const int iClosureParticle) const; // Jet pT closure
-  TH2D* GetHistogramJetPtResponseMatrix(const int iCentrality) const; // Jet pT response matrix
+  // Getters for jet pT closure histograms
+  TH1D* GetHistogramJetPtClosure(const int iGenPtBin, const int iEtaBin, const int iPhiBin, const int iCentrality, const int iClosureParticle); // Jet pT closure
+  TH2D* GetHistogramJetPtResponseMatrix(const int iCentrality); // Jet pT response matrix
 
-  // Getter for jet-event plane histograms
-  TH1D* GetHistogramJetEventPlane(int iOrder, int iJetType, int iCentrality, int iJetPt = -1);
-  TH1D* GetHistogramInclusiveJetEventPlane(int iOrder, int iCentrality, int iJetPt = -1);
-  TH1D* GetHistogramLeadingJetEventPlane(int iOrder, int iCentrality, int iJetPt = -1);
-  TH1D* GetHistogramCalorimeterJetEventPlane(int iOrder, int iCentrality, int iJetPt = -1);
+  // Getters for jet-event plane histograms
+  TH1D* GetHistogramJetEventPlane(const int iOrder, const int iJetType, const int iCentrality, int iJetPt = -1, const int iFlowFit = knFlowFitFlags);
+  TH1D* GetHistogramInclusiveJetEventPlane(const int iOrder, const int iCentrality, int iJetPt = -1, const int iFlowFit = knFlowFitFlags);
+  TH1D* GetHistogramLeadingJetEventPlane(const int iOrder, const int iCentrality, int iJetPt = -1, const int iFlowFit = knFlowFitFlags);
+  TH1D* GetHistogramCalorimeterJetEventPlane(const int iOrder, const int iCentrality, int iJetPt = -1, const int iFlowFit = knFlowFitFlags);
+
+  // Getters for flow fit parameter debug histograms
+  TH1D* GetHistogramFlowFitPFCandidates(const int iCentrality, int iJetPt = -1);
+  TH1D* GetHistogramFlowFitProbability(const int iCentrality, int iJetPt = -1);
   
   // Getters for the loaded centrality and track pT bins
   int GetFirstCentralityBin() const;          // Get the first loaded centrality bin
@@ -129,7 +137,7 @@ public:
   int GetLastJetPtBin() const;             // Get the last loaded energy-energy correlator jet pT bin
   
   // Getters for normalization information
-  int GetNEvents() const;                      // Getter for the number of events passing the cuts
+  int GetNEvents();                      // Getter for the number of events passing the cuts
   
   // Getter for the card
   JetBackgroundCard* GetCard() const;  // Getter for the JCard
@@ -148,8 +156,9 @@ private:
   bool fLoadJets;                               // Load the jet histograms
   bool fLoad2DHistograms;                       // Load also two-dimensional (eta,phi) histograms
   bool fLoadJetPtClosureHistograms;             // Load jet pT closure histograms
-  bool fLoadJetPtResponseMatrix;                // Loas the jet pT response matrix
+  bool fLoadJetPtResponseMatrix;                // Load the jet pT response matrix
   bool fLoadJetEventPlaneCorrelationHistograms; // Load jet-event plane correlation histograms
+  bool fLoadFlowFitParameterHistograms;         // Load the flow fit parameter debug histograms 
   
   // ==============================================
   // ======== Ranges of histograms to load ========
@@ -194,7 +203,10 @@ private:
   TH2D* fhJetPtResponseMatrix[kMaxCentralityBins]; // Jet pT response matrix
 
   // Histograms for jet-event plane correlation
-  TH1D* fhJetEventPlane[knJetTypes][JetBackgroundHistograms::knEventPlanes][kMaxCentralityBins][kMaxJetPtBins];
+  TH1D* fhJetEventPlane[knJetTypes][JetBackgroundHistograms::knEventPlanes][kMaxCentralityBins][kMaxJetPtBins][knFlowFitFlags+1];
+  TH1D* fhFlowFitProbability[kMaxCentralityBins][kMaxJetPtBins];
+  TH1D* fhFlowFitPFCandidates[kMaxCentralityBins][kMaxJetPtBins];
+
 
   // Private methods
   void InitializeFromCard(); // Initialize several member variables from JetBackgroundCard
@@ -214,6 +226,11 @@ private:
   void LoadJetPtClosureHistograms(); // Loader for jet pT closure histograms
   void LoadJetPtResponseMatrix();    // Loader for the jet pT response matrices
   void LoadJetEventPlaneHistograms(); // Loader for jet-event plane correlation histograms
+  void LoadFlowFitParameterHistograms(); // Loader for flow fit parameter debug histograms
+
+  // Loaders for specific histograms
+  void LoadEventsHistogram(); // Loader for the number of events histogram
+  void LoadJetPtHistogram(const int iCentrality, const int iJetType, const int iParton, const int iMatch); // Loader for the jet pT histogram
   
   // Generic setter for bin indice and borders
   void SetGenericBins(const bool readBinsFromFile, const char* histogramName, const int iAxis, int nSetBins, double* setBinBorders, int* setBinIndices, const int nBins, const double* binBorders, const char* errorMessage, const int maxBins, const bool setIndices); // Generic bin setter
@@ -223,10 +240,11 @@ private:
   int BinIndexCheck(const int nBins, const int binIndex) const; // Check that given index is in defined range
   
   // Methods for histogram writing
-  void WriteJetHistograms();            // Write the jet histograms to the file that is currently open
-  void WriteClosureHistograms();        // Write the closure histograms to the file that is currently open
-  void WriteJetPtResponseMatrix();      // Write the jet pT response matrices to the file that is currently open
-  void WriteJetEventPlaneHistograms();  // Write the jet-event plane correlation histograms to the file that is currently open
+  void WriteJetHistograms();              // Write the jet histograms to the file that is currently open
+  void WriteClosureHistograms();          // Write the closure histograms to the file that is currently open
+  void WriteJetPtResponseMatrix();        // Write the jet pT response matrices to the file that is currently open
+  void WriteJetEventPlaneHistograms();    // Write the jet-event plane correlation histograms to the file that is currently open
+  void WriteFlowFitParameterHistograms(); // Write the flow fit parameter debug histograms to the file that is currently open
   
 };
 

@@ -8,19 +8,20 @@
  *
  *  TString inputFileList = If defined, read the input files and legend strings from this file. If not, use the manually defined file names and legend strings 
  */
-void fitJetEventPlaneVn(TString inputFileList = ""){
+void debugJetEventPlaneVn(TString inputFileList = ""){
 
   // Define vectors for input files and legend string corresponding to said files
   std::vector<TFile*> inputFile;
   std::vector<TString> jetLegendString;
   std::vector<TString> saveNameString;
+  std::vector<std::vector<bool>> drawFlowFitDebug; // Option to draw histograms with and without flow fit flag.
   TString saveComment;
   AlgorithmLibrary *fitter = new AlgorithmLibrary();
 
   // If a text file is provided as input, read the input files and legend string from there. Otherwise use manually defined ones
   if(inputFileList.EndsWith(".txt")){
 
-    std::tie(inputFile, jetLegendString, saveNameString, saveComment) = fitter->ReadFileList(inputFileList);
+    std::tie(inputFile, jetLegendString, saveNameString, drawFlowFitDebug, saveComment) = fitter->ReadFileListWithDebug(inputFileList);
 
     // If there was an error in loading the files, exit the program
     if(inputFile.at(0) == NULL){
@@ -30,14 +31,20 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
 
   } else {
 
+    std::vector<bool> sampleVector = {false, false, true};
+
     inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundHistograms_genJets_2024-08-10.root"));
     jetLegendString.push_back("Gen jets");
+    drawFlowFitDebug.push_back(sampleVector);
     inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundAnalysis_optimizedCutFlowJets_ptFromMatchedGenJet_eventPlaneProjection_2025-07-23.root"));
     jetLegendString.push_back("Optimized flow with gen p_{T}");
+    drawFlowFitDebug.push_back(sampleVector);
     inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundAnalysis_optimizedCutFlowJetsNoIter_ptFromMatchedGenJet_eventPlaneProjection_2025-07-23.root"));
     jetLegendString.push_back("No iter optimized jets with gen p_{T}");
+    drawFlowFitDebug.push_back(sampleVector);
     inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundAnalysis_defaultFlowJets_ptFromMatchedGenJet_eventPlaneProjected_2025-07-22.root"));
     jetLegendString.push_back("Default flow with gen p_{T}");
+    drawFlowFitDebug.push_back(sampleVector);
   }
 
   // Create a vector of cards from all input files
@@ -45,6 +52,8 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   for(auto thisFile : inputFile){
     cardVector.push_back(new JetBackgroundCard(thisFile));
   }
+
+  TString flowFlagString[3] = {" no fit", " flow fit", ""};
 
   // Find the number of files
   const int nFiles = inputFile.size();
@@ -91,9 +100,6 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   if(!inputFileList.EndsWith(".txt")) saveComment = "manualJECpfCs";
 
   if(saveComment.CompareTo("", TString::kExact) != 0) saveComment.Prepend("_");
-
-  // Option to draw histograms with and without flow fit flag.
-  std::vector<std::vector<bool>> drawFlowFitDebug;
   
   // Fing the number of bins in the files
   const int nCentralityBins = cardVector.at(0)->GetNCentralityBins();
@@ -101,22 +107,24 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   const int eventPlaneOrder = 2;
 
   // Initialize objects to null and numbers negative
-  TH1D* hJetEventPlane[nFiles][nCentralityBins][nJetPtBins+1];
-  TF1* fitFunctionJetEventPlane[nFiles][nCentralityBins][nJetPtBins+1];
-  double averageYield[nFiles][nCentralityBins][nJetPtBins+1];
+  TH1D* hJetEventPlane[nFiles][nCentralityBins][nJetPtBins+1][3];
+  TF1* fitFunctionJetEventPlane[nFiles][nCentralityBins][nJetPtBins+1][3];
+  double averageYield[nFiles][nCentralityBins][nJetPtBins+1][3];
 
   for(int iFile = 0; iFile < nFiles; iFile++){
     for(int iCentrality = 0; iCentrality < nCentralityBins; iCentrality++){
       for(int iJetPt = 0; iJetPt < nJetPtBins+1; iJetPt++){
-        hJetEventPlane[iFile][iCentrality][iJetPt] = NULL;
-        fitFunctionJetEventPlane[iFile][iCentrality][iJetPt] = NULL;
-        averageYield[iFile][iCentrality][iJetPt] = -999;
+        for(int iFlowFlag = 0; iFlowFlag < 3; iFlowFlag++){
+          hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag] = NULL;
+          fitFunctionJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag] = NULL;
+          averageYield[iFile][iCentrality][iJetPt][iFlowFlag] = -999;
+        }
       } // Jet pT loop
     } // Centrality loop
   } // File loop
 
   // Initialize histogram managers from each input file
-  std::vector<JetBackgroundHistogramManager*> histograms; 
+  std::vector<JetBackgroundHistogramManager*> histograms;
   for(auto thisFile : inputFile){
 
     // Add the histogram manager with properly loaded histograms to the manager of histogram managers
@@ -129,19 +137,22 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   int iCentrality, iCentralityMatched;
   int iJetPt, iJetPtMatched;
   for(int iFile = 0; iFile < nFiles; iFile++){
-    for(auto centralityBin : analyzedCentralityBin){
-      iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
-      iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
-      for(auto jetPtBin : analyzedJetPtBin){
-        if(jetPtBin.second == 0){
-          hJetEventPlane[iFile][iCentrality][nJetPtBins] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, jetTypeVector.at(iFile), iCentralityMatched);
-        } else {
-          iJetPt = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-          iJetPtMatched = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-          hJetEventPlane[iFile][iCentrality][iJetPt] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, jetTypeVector.at(iFile), iCentralityMatched, iJetPtMatched);
-        }
-      } // Jet pT loop 
-    } // Centrality loop
+    for(int iFlowFlag = 0; iFlowFlag < 3; iFlowFlag++){
+      if(!drawFlowFitDebug.at(iFile).at(iFlowFlag)) continue;
+      for(auto centralityBin : analyzedCentralityBin){
+        iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
+        iCentralityMatched = cardVector.at(iFile)->FindBinIndexCentrality(centralityBin);
+        for(auto jetPtBin : analyzedJetPtBin){
+          if(jetPtBin.second == 0){
+            hJetEventPlane[iFile][iCentrality][nJetPtBins][iFlowFlag] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, jetTypeVector.at(iFile), iCentralityMatched, -1, iFlowFlag);
+          } else {
+            iJetPt = cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
+            iJetPtMatched = cardVector.at(iFile)->FindBinIndexJetPt(jetPtBin);
+            hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag] = histograms.at(iFile)->GetHistogramJetEventPlane(eventPlaneOrder, jetTypeVector.at(iFile), iCentralityMatched, iJetPtMatched, iFlowFlag);
+          }
+        } // Jet pT loop 
+      } // Centrality loop
+    } // Flow debug flag
   } // File loop
   
   // Scale the histograms such that yields between different jet collections match
@@ -149,15 +160,18 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
     
     // Find the average yield from each histogram and use it to scale the distributions
     for(int iFile = 0; iFile < nFiles; iFile++){
-      for(auto centralityBin : analyzedCentralityBin){
-        for(auto jetPtBin : analyzedJetPtBin){
-          iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
-          iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-          hJetEventPlane[iFile][iCentrality][iJetPt]->Fit("pol0","0");
-          averageYield[iFile][iCentrality][iJetPt] = hJetEventPlane[iFile][iCentrality][iJetPt]->GetFunction("pol0")->GetParameter(0);
-          hJetEventPlane[iFile][iCentrality][iJetPt]->Scale(1 / averageYield[iFile][iCentrality][iJetPt]);
-        } // Jet pT loop
-      } // Centrality loop
+      for(int iFlowFlag = 0; iFlowFlag < 3; iFlowFlag++){
+        if(!drawFlowFitDebug.at(iFile).at(iFlowFlag)) continue;
+        for(auto centralityBin : analyzedCentralityBin){
+          for(auto jetPtBin : analyzedJetPtBin){
+            iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
+            iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
+            hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->Fit("pol0","0");
+            averageYield[iFile][iCentrality][iJetPt][iFlowFlag] = hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->GetFunction("pol0")->GetParameter(0);
+            hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->Scale(1 / averageYield[iFile][iCentrality][iJetPt][iFlowFlag]);
+          } // Jet pT loop
+        } // Centrality loop
+      } // Flow debug flag
     } // File loop
     
   } // Matching yields between different files
@@ -165,29 +179,35 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   
   // Do a fourier fit up to v4 to all histograms
   for(int iFile = 0; iFile < nFiles; iFile++){
-    for(auto centralityBin : analyzedCentralityBin){
-      for(auto jetPtBin : analyzedJetPtBin){
-        iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
-        iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-        fitter->FourierFit(hJetEventPlane[iFile][iCentrality][iJetPt], 4, false, "0");
-        fitFunctionJetEventPlane[iFile][iCentrality][iJetPt] = hJetEventPlane[iFile][iCentrality][iJetPt]->GetFunction("fourier");
-      }
-    } // Centrality loop
+    for(int iFlowFlag = 0; iFlowFlag < 3; iFlowFlag++){
+      if(!drawFlowFitDebug.at(iFile).at(iFlowFlag)) continue;
+      for(auto centralityBin : analyzedCentralityBin){
+        for(auto jetPtBin : analyzedJetPtBin){
+          iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
+          iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
+          fitter->FourierFit(hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag], 4, false, "0");
+          fitFunctionJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag] = hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->GetFunction("fourier");
+        }
+      } // Centrality loop
+    } // Flow debug flag
   } // File loop
   
   // Print values of vn components to console
   if(printVs){
     for(int iFile = 0; iFile < nFiles; iFile++){
-      for(int iFlow = 2; iFlow < 5; iFlow++){
-        for(auto centralityBin : analyzedCentralityBin){
-          for(auto jetPtBin : analyzedJetPtBin){
-            iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
-            iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
-            cout << Form("%s-event plane v%d. ", looseJetTypeString[iJetType].Data(), iFlow) << jetLegendString.at(iFile).Data() << Form(". Cent %d-%d: ", centralityBin.first, centralityBin.second) << fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]->GetParameter(iFlow) << endl;
-          } // Jet pT loop
-        } // Centrality loop
-      } // Flow component loop
-    } // Jet type loop
+      for(int iFlowFlag = 0; iFlowFlag < 3; iFlowFlag++){
+        if(!drawFlowFitDebug.at(iFile).at(iFlowFlag)) continue;
+        for(int iFlow = 2; iFlow < 5; iFlow++){
+          for(auto centralityBin : analyzedCentralityBin){
+            for(auto jetPtBin : analyzedJetPtBin){
+              iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
+              iJetPt = jetPtBin.second == 0 ? nJetPtBins : cardVector.at(0)->FindBinIndexJetPt(jetPtBin);
+              cout << Form("%s-event plane v%d. ", looseJetTypeString[iJetType].Data(), iFlow) << jetLegendString.at(iFile).Data() << Form(". Cent %d-%d: ", centralityBin.first, centralityBin.second) << fitFunctionJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->GetParameter(iFlow) << endl;
+            } // Jet pT loop
+          } // Centrality loop
+        } // Flow component loop
+      } // Jet type loop
+    } // Flow debug flag
   } // Printing values of vn components
     
   JDrawer* drawer = new JDrawer();
@@ -200,6 +220,8 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
   int colors[] = {kBlack, kRed, kBlue, kGreen+3, kMagenta, kCyan};
   std::pair<double,double> yAxisZoom;
   double spread;
+  int colorIndex = 0;
+  bool firstDistribution = true;
   
   for(auto centralityBin : analyzedCentralityBin){
     iCentrality = cardVector.at(0)->FindBinIndexCentrality(centralityBin);
@@ -208,6 +230,9 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
     compactCentralityString = Form("_C=%d-%d", centralityBin.first, centralityBin.second);
 
     for(auto jetPtBin : analyzedJetPtBin){
+
+      // Clear color index
+      colorIndex = 0;
 
       if(jetPtBin.second == 0){
         iJetPt = nJetPtBins;
@@ -231,42 +256,50 @@ void fitJetEventPlaneVn(TString inputFileList = ""){
 
       // Determine a good y-axis zoom range
       for(int iFile = 0; iFile < nFiles; iFile++){
-        yAxisZoom = fitter->FindHistogramMinMax(hJetEventPlane[iFile][iCentrality][iJetPt], yAxisZoom);
-      }
+        for(int iFlowFlag = 0; iFlowFlag < 3; iFlowFlag++){
+          if(!drawFlowFitDebug.at(iFile).at(iFlowFlag)) continue;
+          yAxisZoom = fitter->FindHistogramMinMax(hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag], yAxisZoom);
+        } // Flow debug flag
+      } // File loop
       spread = yAxisZoom.second - yAxisZoom.first;
       yAxisZoom.first = yAxisZoom.first - spread * 0.1;
       yAxisZoom.second = yAxisZoom.second + spread * 0.1;
     
       // Draw all the distributions to the same canvas
+      firstDistribution = true;
       for(int iFile = 0; iFile < nFiles; iFile++){
+        for(int iFlowFlag = 2; iFlowFlag >= 0; iFlowFlag--){
+          if(!drawFlowFitDebug.at(iFile).at(iFlowFlag)) continue;
             
-        // Option to rebin the histograms
-        if(nRebin > 1){
-          hJetEventPlane[iFile][iCentrality][iJetPt]->Rebin(nRebin);
-          hJetEventPlane[iFile][iCentrality][iJetPt]->Scale(1.0 / nRebin);
-        }
+          // Option to rebin the histograms
+          if(nRebin > 1){
+            hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->Rebin(nRebin);
+            hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->Scale(1.0 / nRebin);
+          }
 
-        // Set drawing range and style for the histograms
-        hJetEventPlane[iFile][iCentrality][iJetPt]->GetYaxis()->SetRangeUser(yAxisZoom.first, yAxisZoom.second);
-        hJetEventPlane[iFile][iCentrality][iJetPt]->SetLineColor(colors[iFile]);
-        fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]->SetLineColor(colors[iFile]);
+          // Set drawing range and style for the histograms
+          hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->GetYaxis()->SetRangeUser(yAxisZoom.first, yAxisZoom.second);
+          hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->SetLineColor(colors[colorIndex]);
+          fitFunctionJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->SetLineColor(colors[colorIndex++]);
       
-        // Draw the histograms to the canvas
-        if(iFile == 0){
-          drawer->DrawHistogram(hJetEventPlane[iFile][iCentrality][iJetPt], "#Delta#varphi", "A.U.", " ");
-        } else {
-          hJetEventPlane[iFile][iCentrality][iJetPt]->Draw("same");
-        }
+          // Draw the histograms to the canvas
+          if(firstDistribution){
+            drawer->DrawHistogram(hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag], "#Delta#varphi", "A.U.", " ");
+            firstDistribution = false;
+          } else {
+            hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->Draw("same");
+          }
       
-        // Add a legend entry for this histogram
-        legend->AddEntry(hJetEventPlane[iFile][iCentrality][iJetPt], Form("%s, v_{%d} = %.3f", jetLegendString.at(iFile).Data(), eventPlaneOrder, fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]->GetParameter(eventPlaneOrder)) ,"l");
+          // Add a legend entry for this histogram
+          legend->AddEntry(hJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag], Form("%s%s, v_{%d} = %.3f", jetLegendString.at(iFile).Data(), flowFlagString[iFlowFlag].Data(), eventPlaneOrder, fitFunctionJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->GetParameter(eventPlaneOrder)) ,"l");
 
-        // Draw the fit if not explicitly required to hide it
-        if(!hideFit){
-          fitFunctionJetEventPlane[iFile][iCentrality][iJetPt]->Draw("same");
-        }
-      
-      } // Jet type loop
+          // Draw the fit if not explicitly required to hide it
+          if(!hideFit){
+            fitFunctionJetEventPlane[iFile][iCentrality][iJetPt][iFlowFlag]->Draw("same");
+          }
+
+        } // Flow flag debug 
+      } // File loop
 
       // Draw the legend
       legend->Draw();

@@ -588,7 +588,7 @@ TF1* AlgorithmLibrary::FourierFit(TH1D* hDeltaPhi, const int maxVn, const bool o
 
 /*
  * Read a list of specifically formatted files
- *  Arguments: TString inputFileList = File containing a file name of the specifically formatted filei n each line
+ *  Arguments: TString inputFileList = File containing a file name of the specifically formatted file in each line
  *
  *  return: Tuple with vectors of files, legend comments and save comment
  */
@@ -638,7 +638,7 @@ std::tuple<std::vector<TFile*>, std::vector<TString>, std::vector<TString>, TStr
           lineItem = (TObjString*)lineContents->At(2);
           saveNameString.push_back(lineItem->String().Strip(TString::kBoth, ' '));
 
-          // Note: Strip command removes empty space from the beginning and ned of the string
+          // Note: Strip command removes empty space from the beginning and end of the string
         }
       } // Empty line if
       
@@ -656,5 +656,105 @@ std::tuple<std::vector<TFile*>, std::vector<TString>, std::vector<TString>, TStr
 
   // Collect the information to a tuple and return it
   return std::make_tuple(inputFile, jetLegendString, saveNameString, saveComment);
+
+}
+
+/*
+ * Read a list of specifically formatted files
+ *  Arguments: TString inputFileList = File containing a file name of the specifically formatted file in each line
+ *
+ *  return: Tuple with vectors of files, legend comments and save comment
+ */
+std::tuple<std::vector<TFile*>, std::vector<TString>, std::vector<TString>, std::vector<std::vector<bool>>, TString> AlgorithmLibrary::ReadFileListWithDebug(TString inputFileList){
+
+  // Define vectors for input files and legend string corresponding to said files
+  std::vector<TFile*> inputFile;
+  std::vector<TString> jetLegendString;
+  std::vector<TString> saveNameString;
+  std::vector<std::vector<bool>> flowDebugFlag;
+  TString saveComment;
+
+  // Set up the input file list for reading
+  std::ifstream file_stream(inputFileList);
+  std::string line;
+  TObjArray* lineContents;
+  TObjString* lineItem;
+  TString lineSearch;
+  std::vector<bool> thisFileDebug = {false, false, true};
+
+  bool firstLine = true; 
+
+  // Open the input file list for reading
+  if( file_stream.is_open() ) {
+    
+    // Loop over the lines in the input file list
+    while( !file_stream.eof() ) {
+      getline(file_stream, line);
+      TString lineString(line);
+
+      // Clear the debug flags from this file
+      thisFileDebug.clear();
+      
+      // If the line is non-empty, extract the file name and legend comment from it
+      if( lineString.CompareTo("", TString::kExact) != 0 ) {
+
+        if(firstLine){
+          saveComment = lineString;
+          firstLine = false;
+        } else {
+          // Other lines define the files that are compared, and a comment given to them in legend
+          lineContents = lineString.Tokenize("&"); // Tokenize the string from '&' character
+
+          // It is assumed that the line content before first '&' character gives the file name
+          lineItem = (TObjString*)lineContents->At(0);
+          inputFile.push_back(TFile::Open(lineItem->String()));
+
+          // It is assumed that the line content between first and second '&' character gives the legend comment
+          lineItem = (TObjString*)lineContents->At(1);
+          jetLegendString.push_back(lineItem->String().Strip(TString::kBoth, ' '));
+
+          // It is assumed that the line content after the second '&' character gives the save comment is only this figure is saved
+          lineItem = (TObjString*)lineContents->At(2);
+          saveNameString.push_back(lineItem->String().Strip(TString::kBoth, ' '));
+
+          // Note: Strip command removes empty space from the beginning and end of the string
+
+          // If there is a fourth item in lineContents, use that information to read which debug flags to draw
+          if(lineContents->GetEntries() > 3){
+
+            // If there is a third component, search for numbers 0, 1, and 2.
+            lineItem = (TObjString*)lineContents->At(3);
+            lineSearch = lineItem->String().Strip(TString::kBoth, ' ');
+            thisFileDebug.push_back(lineSearch.Contains('0'));
+            thisFileDebug.push_back(lineSearch.Contains('1'));
+            thisFileDebug.push_back(lineSearch.Contains('2'));
+
+
+          } else {
+
+            // By default, only draw the full distribution
+            thisFileDebug.push_back(false);
+            thisFileDebug.push_back(false);
+            thisFileDebug.push_back(true);
+          }
+          
+          flowDebugFlag.push_back(thisFileDebug);
+        }
+      } // Empty line if
+      
+    } // Loop over lines in the file
+    
+  // If cannot read the file, give error and end program
+  } else {
+    std::cout << "Error, could not open " << inputFileList.Data() << " for reading" << std::endl;
+    std::cout << "Please check the file name!" << std::endl;
+    inputFile.push_back(NULL);
+    jetLegendString.push_back("ERROR");
+    saveNameString.push_back("ERROR");
+    saveComment = "ERROR";
+  }
+
+  // Collect the information to a tuple and return it
+  return std::make_tuple(inputFile, jetLegendString, saveNameString, flowDebugFlag, saveComment);
 
 }

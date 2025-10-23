@@ -29,6 +29,7 @@ void projectJetBackgroundHistograms(TString inputFileName, const char* outputFil
   bool loadJetPtClosure = false;
   bool loadJetPtResponseMatrix = false;
   bool loadJetEventPlaneHistograms = false;
+  bool loadFlowFitParameterHistograms = false;
   
   /*
    * Loading only selected histograms. Done with bitwise check of an integer
@@ -38,14 +39,16 @@ void projectJetBackgroundHistograms(TString inputFileName, const char* outputFil
    *  Bit 2 = Load jet pT closure histograms (to set: 4)
    *  Bit 3 = Load jet pT response matrices (to set: 8)
    *  Bit 4 = Load jet-event plane corerlation histograms (to set: 16)
+   *  Bit 5 = Load flow fit parameter debug histograms (to set: 32)
    */
   if(histogramSelection > 0){
-    std::bitset<5> bitChecker(histogramSelection);
+    std::bitset<6> bitChecker(histogramSelection);
     loadEventInformation = bitChecker.test(0);
     loadJets = bitChecker.test(1);
     loadJetPtClosure = bitChecker.test(2);
     loadJetPtResponseMatrix = bitChecker.test(3);
     loadJetEventPlaneHistograms = bitChecker.test(4);
+    loadFlowFitParameterHistograms = bitChecker.test(5);
   }
   
   // ====================================================
@@ -138,6 +141,7 @@ void projectJetBackgroundHistograms(TString inputFileName, const char* outputFil
   histograms->SetLoadJetPtClosureHistograms(loadJetPtClosure);
   histograms->SetLoadJetPtResponseMatrix(loadJetPtResponseMatrix);
   histograms->SetLoadJetEventPlaneHistograms(loadJetEventPlaneHistograms);
+  histograms->SetLoadFlowFitParameterHistograms(loadFlowFitParameterHistograms);
 
   // Set the binning information
   histograms->SetCentralityBins(readCentralityBinsFromFile,nCentralityBins,centralityBinBorders,true);

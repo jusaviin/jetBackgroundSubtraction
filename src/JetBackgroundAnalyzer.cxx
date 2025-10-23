@@ -44,6 +44,10 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer() :
   fMinimumMaxTrackPtFraction(0),
   fMaximumMaxTrackPtFraction(0),
   fJetClosureMinimumPt(0),
+  fDoFlowFitDebug(false),
+  fFlowFitMinPFCandidates(0),
+  fFlowFitMinProbability(0),
+  fFlowFitMaxProbability(0),
   fFillJetPtClosure(false)
 {
   // Default constructor
@@ -143,6 +147,10 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(const JetBackgroundAnalyzer& in) :
   fMinimumMaxTrackPtFraction(in.fMinimumMaxTrackPtFraction),
   fMaximumMaxTrackPtFraction(in.fMaximumMaxTrackPtFraction),
   fJetClosureMinimumPt(in.fJetClosureMinimumPt),
+  fDoFlowFitDebug(in.fDoFlowFitDebug),
+  fFlowFitMinPFCandidates(in.fFlowFitMinPFCandidates),
+  fFlowFitMinProbability(in.fFlowFitMinProbability),
+  fFlowFitMaxProbability(in.fFlowFitMaxProbability),
   fFillJetPtClosure(in.fFillJetPtClosure)
 {
   // Copy constructor
@@ -186,6 +194,10 @@ JetBackgroundAnalyzer& JetBackgroundAnalyzer::operator=(const JetBackgroundAnaly
   fMinimumMaxTrackPtFraction = in.fMinimumMaxTrackPtFraction;
   fMaximumMaxTrackPtFraction = in.fMaximumMaxTrackPtFraction;
   fJetClosureMinimumPt = in.fJetClosureMinimumPt;
+  fDoFlowFitDebug = in.fDoFlowFitDebug;
+  fFlowFitMinPFCandidates = in.fFlowFitMinPFCandidates;
+  fFlowFitMinProbability = in.fFlowFitMinProbability;
+  fFlowFitMaxProbability = in.fFlowFitMaxProbability;
   fFillJetPtClosure = in.fFillJetPtClosure;
   
   return *this;
@@ -252,6 +264,14 @@ void JetBackgroundAnalyzer::ReadConfigurationFromCard(){
   //            Jet pT closure
   //***************************************
   fFillJetPtClosure = (fCard->Get("FillJetPtClosure") == 1); // Flag to fill jet pT closure histograms
+
+  //***********************************************
+  //          Flow fit debug variables
+  //***********************************************
+  fDoFlowFitDebug = (fCard->Get("DoFlowFitDebug") == 1);                    // Flag to do debug study for flow fit
+  fFlowFitMinPFCandidates = fCard->Get("FlowMinimumNumberOfPFCandidates");  // Minimum number of PF candidates in the flow fit
+  fFlowFitMinProbability = fCard->Get("FlowMinimumProbability");            // Minimum probability score for the flow fit
+  fFlowFitMaxProbability = fCard->Get("FlowMaximumProbability");            // Maximum probability score for the flow fit
   
   //************************************************
   //              Debug messages
@@ -318,17 +338,24 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   Double_t eventPlaneQy[nFlowComponentsEP] = {0};     // y-component of the event plane vector
   Double_t jetEventPlaneDeltaPhi = 0;                 // DeltaPhi between jet and event plane angle
   Double_t eventPlaneAngle[nFlowComponentsEP] = {0};  // Manually calculated event plane angle
+
+  // Variables for debugging the performance of the flow fit
+  Int_t flowFitApplied = 0;
+  Int_t nFlowFitPFCandidates = 0;
+  Double_t flowFitProbability = 0;
   
   // File name helper variables
   TString currentFile;
   
   // Fillers for THnSparses
   const Int_t nFillJet = 6;         // Inclusive and leading jets
-  const Int_t nFillEventPlane = 3;  // Correlation between inclusive and leading jets with event plane
+  const Int_t nFillEventPlane = 4;  // Correlation between inclusive and leading jets with event plane
   const Int_t nAxesClosure = 7;     // Jet pT closure
+  const Int_t nFillFlowFit = 4;     // Flow fit debug parameters
   Double_t fillerJet[nFillJet];
   Double_t fillerEventPlane[nFillEventPlane];
   Double_t fillerClosure[nAxesClosure];
+  Double_t fillerFlowFit[nFillFlowFit];
   
   // For 2018 PbPb and 2017 pp data, we need to correct jet pT
   std::string correctionFileRelative = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
@@ -346,7 +373,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   //      Find forest readers for data files
   //************************************************
 
-  fEventReader = new MonteCarloForestReader(fJetSubtraction, fJetAxis);
+  fEventReader = new MonteCarloForestReader(fJetSubtraction, fJetAxis, fDoFlowFitDebug);
   
   //************************************************
   //       Main analysis loop over all files
@@ -508,6 +535,25 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       }
 
       //***********************************************************
+      //           Read the flow fit debug variables
+      //***********************************************************
+
+      if(fDoFlowFitDebug){
+        nFlowFitPFCandidates = fEventReader->GetNFlowPFCandidates();
+        flowFitProbability = fEventReader->GetFlowFitProbability();
+
+        flowFitApplied = 1;
+        if(nFlowFitPFCandidates < fFlowFitMinPFCandidates) {
+          flowFitApplied = 0;
+        } else if (flowFitProbability < fFlowFitMinProbability){
+          flowFitApplied = 0;
+        } else if (flowFitProbability > fFlowFitMaxProbability){
+          flowFitApplied = 0;
+        }
+
+      }
+
+      //***********************************************************
       //       First jet loop for event plane correlations
       //***********************************************************
 
@@ -581,7 +627,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         // Cut on jet eta
         if(TMath::Abs(jetEta) >= fJetEtaCut) continue;
 
-        if(jetPt > 80 && fEventReader->GetMatchedPt(fJetType, jetIndex) < 80){
+        /*if(jetPt > 80 && fEventReader->GetMatchedPt(fJetType, jetIndex) < 80){
           if(TMath::Abs(fEventReader->GetMatchedEta(fJetType, jetIndex)) < fJetEtaCut){
             cout << "Reco jet above 80 and gen jet below 80 in event " << iEvent << endl;
           }
@@ -591,7 +637,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           if(TMath::Abs(fEventReader->GetMatchedEta(fJetType, jetIndex)) < fJetEtaCut){
             cout << "Reco jet below 80 and gen jet above 80 in event " << iEvent << endl;
           }
-        }
+        }*/
 
 
         // After the jet pT can been corrected, apply analysis jet pT and eta cuts
@@ -645,6 +691,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
           fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
           fillerEventPlane[2] = centrality;             // Axis 2: centrality
+          fillerEventPlane[3] = flowFitApplied;         // Axis 3: flag if the flow fit is applied or not
 
           fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
 
@@ -684,10 +731,23 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
           fillerEventPlane[1] = leadingJetPt;           // Axis 1: Leading jet pT
           fillerEventPlane[2] = centrality;             // Axis 2: centrality
+          fillerEventPlane[3] = flowFitApplied;         // Axis 3: flag if the flow fit is applied or not
 
           fHistograms->fhLeadingJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
 
         }
+
+        // Only fill the flow fit histograms if there is a relevant jet in the event
+        if(fDoFlowFitDebug){
+
+          // Fill the histogram with flow fit debug parameters
+          fillerFlowFit[0] = nFlowFitPFCandidates;  // Axis 0: Number of PF candidates used for the fit
+          fillerFlowFit[1] = flowFitProbability;    // Axis 1: Probability for good fit
+          fillerFlowFit[2] = leadingJetPt;          // Axis 2: Leading jet pT
+          fillerFlowFit[3] = centrality;            // Axis 3: Centrality
+
+          fHistograms->fFlowFitParameters->Fill(fillerFlowFit, fTotalEventWeight);
+        } // Flow fit debug
       } // Filling leading jet histograms
 
       //*******************************************************************
@@ -746,6 +806,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
             fillerEventPlane[0] = jetEventPlaneDeltaPhi;  // Axis 0: DeltaPhi between jet and event plane
             fillerEventPlane[1] = jetPt;                  // Axis 1: Jet pT
             fillerEventPlane[2] = centrality;             // Axis 2: centrality
+            fillerEventPlane[3] = flowFitApplied;         // Axis 3: flag if the flow fit is applied or not
 
             fHistograms->fhCalorimeterJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
           } // Flow order loop

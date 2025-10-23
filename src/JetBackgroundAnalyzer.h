@@ -97,6 +97,12 @@ public:
   Double_t fMinimumMaxTrackPtFraction; // Cut for jets consisting only from soft particles
   Double_t fMaximumMaxTrackPtFraction; // Cut for jets consisting only from one high pT
   Double_t fJetClosureMinimumPt;       // Minimum jet pT for jet pT closure plots
+
+  // Variables for flow fit debugging study
+  Bool_t fDoFlowFitDebug;
+  Int_t fFlowFitMinPFCandidates;
+  Double_t fFlowFitMinProbability;
+  Double_t fFlowFitMaxProbability;
   
   // Jet pT closure histogram filling is optional
   Bool_t fFillJetPtClosure;            // Fill jet pT closure histograms

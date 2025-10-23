@@ -99,10 +99,6 @@ void drawJetPtResponseMatrix(TString inputFileList = ""){
   for(auto thisFile : inputFile){
     manager = new JetBackgroundHistogramManager(thisFile);
 
-    // Load the jet pT response matrices
-    manager->SetLoadJetPtResponseMatrix(true);
-    manager->LoadProcessedHistograms();
-
     // Add the histogram manager with properly loaded histograms to the manager of histogram managers
     histograms.push_back(manager);
   }

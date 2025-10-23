@@ -20,6 +20,7 @@
 #include <TChain.h>
 #include <TBranch.h>
 #include <TFile.h>
+#include <Math/ProbFunc.h>
 
 // Own includes
 #include "JetBackgroundHistograms.h"
@@ -37,16 +38,16 @@ public:
   enum enumJetType {kReconstructedJet, kGeneratorLevelJet, knJetTypes};
   
   // Constructors and destructors
-  MonteCarloForestReader();                                              // Default constructor
-  MonteCarloForestReader(Int_t jetType, Int_t jetAxis);                  // Custom constructor
-  MonteCarloForestReader(const MonteCarloForestReader& in);              // Copy constructor
-  ~MonteCarloForestReader();                                             // Destructor
-  MonteCarloForestReader& operator=(const MonteCarloForestReader& obj);  // Equal sign operator
+  MonteCarloForestReader();                                               // Default constructor
+  MonteCarloForestReader(Int_t jetType, Int_t jetAxis, Bool_t flowDebug); // Custom constructor
+  MonteCarloForestReader(const MonteCarloForestReader& in);               // Copy constructor
+  ~MonteCarloForestReader();                                              // Destructor
+  MonteCarloForestReader& operator=(const MonteCarloForestReader& obj);   // Equal sign operator
   
   // Methods
   void GetEvent(Int_t iEvent);                 // Get the i:th event in tree
   Int_t GetNEvents() const;                    // Get the number of events
-  void ReadForestFromFile(TFile *inputFile);   // Read the forest from a file
+  void ReadForestFromFile(TFile* inputFile);   // Read the forest from a file
   void ReadForestFromFileList(std::vector<TString> fileList);   // Read the forest from a file list
   void BurnForest();                           // Burn the forest
   
@@ -115,6 +116,12 @@ public:
   Int_t GetJetFlavor(Int_t jetType, Int_t iJet) const; // Getter for the jet flavor for input jet type
   Int_t GetRecoJetFlavor(Int_t iJet) const;            // Getter for reconstructed jet flavor
   Int_t GetGenJetFlavor(Int_t iJet) const;             // Getter for generator level jet flavor
+
+  // Getters for flow subtraction debug variables
+  Int_t GetFirstFittedFlowComponent() const;
+  Int_t GetLastFittedFlowComponent() const;
+  Double_t GetFlowFitProbability() const;
+  Int_t GetNFlowPFCandidates() const;
   
   // Getters for leaves in track tree
   Int_t GetNTracks() const;                                  // Getter for number of tracks
@@ -145,10 +152,12 @@ public:
 private:
   
   // Methods
-  void Initialize();      // Connect the branches to the tree
+  void Initialize();             // Connect the branches to the tree
+  void DecodeFlowDebugVectors(); // Exctract information from the flow debug vectors
     
   Int_t fJetType;         // Choose the type of jets used for analysis. 0 = Calo PU jets, 1 = PF CS jets, 2 = Flow subtracted Pf CS jets
   Int_t fJetAxis;         // Jet axis used for the jets. 0 = Anti-kT, 1 = WTA
+  Bool_t fDoFlowDebug;    // Read the debug branches for flow subtraction
   
   // Trees in the forest
   TTree* fHeavyIonTree;    // Tree for heavy ion event information
@@ -194,6 +203,9 @@ private:
   TBranch* fCaloJetPtBranch;     // Branch for calo jet pT
   TBranch* fCaloJetPhiBranch;    // Branch for calo jet phi
   TBranch* fCaloJetEtaBranch;    // Branch for calo jet eta
+
+  TBranch* fFlowFitParametersBranch;  // Branch for flow fit parameters
+  TBranch* fFlowDebugInfoBranch;      // Branch for flow fit debug information
 
   // Branches for track tree
   TBranch* fnTracksBranch;                     // Branch for number of tracks
@@ -259,6 +271,16 @@ private:
   Float_t fCaloJetPtArray[fnMaxJet] = {0};      // pT:s of the calorimeter jets in an event
   Float_t fCaloJetPhiArray[fnMaxJet] = {0};     // phis of the calorimeter jets in an event
   Float_t fCaloJetEtaArray[fnMaxJet] = {0};     // etas of the calorimeter jets in an event
+
+  // The jet tree might include also debug information for flow subtraction
+  vector<double>* fFlowFitParameters;
+  vector<double>* fFlowFitDebugInfo;
+
+  // Information that can be extracted from the flow subtraction vectors
+  Int_t fFirstFittedFlowComponent;
+  Int_t fLastFittedFlowComponent;
+  Double_t fFlowFitProbability;
+  Int_t fnFlowPFCandidates;
   
   // Leaves for the track tree regardless of forest type
   Int_t fnTracks;  // Number of tracks

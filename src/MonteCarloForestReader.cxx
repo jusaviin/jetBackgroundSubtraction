@@ -9,6 +9,7 @@
 MonteCarloForestReader::MonteCarloForestReader() :
   fJetType(0),
   fJetAxis(0),
+  fDoFlowDebug(false),
   fHeavyIonTree(0),
   fSkimTree(0),
   fJetTree(0),
@@ -43,6 +44,8 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fCaloJetPtBranch(0),
   fCaloJetPhiBranch(0),
   fCaloJetEtaBranch(0),
+  fFlowFitParametersBranch(0),
+  fFlowDebugInfoBranch(0),
   fnTracksBranch(0),
   fTrackPtBranch(0),
   fTrackPtErrorBranch(0),
@@ -93,6 +96,12 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fCaloJetPtArray(),
   fCaloJetPhiArray(),
   fCaloJetEtaArray(),
+  fFlowFitParameters(0),
+  fFlowFitDebugInfo(0),
+  fFirstFittedFlowComponent(0),
+  fLastFittedFlowComponent(0),
+  fFlowFitProbability(0),
+  fnFlowPFCandidates(0),
   fnTracks(0),
   fTrackPtVector(0),
   fTrackPtErrorVector(0),
@@ -131,10 +140,12 @@ MonteCarloForestReader::MonteCarloForestReader() :
  *  Arguments:
  *   Int_t jetType: 0 = Calo jets, 1 = CSPF jets, 2 = Flow subtracted CSPF jets
  *   Int_t jetAxis: 0 = E-scheme axis, 1 = WTA axis
+ *   Bool_t flowDebug: false = Do not include flow debug branches, true = Include flow debug branches
  */
-MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
+MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis, Bool_t flowDebug) :
   fJetType(jetType),
   fJetAxis(jetAxis),
+  fDoFlowDebug(flowDebug),
   fHeavyIonTree(0),
   fSkimTree(0),
   fJetTree(0),
@@ -169,6 +180,8 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fCaloJetPtBranch(0),
   fCaloJetPhiBranch(0),
   fCaloJetEtaBranch(0),
+  fFlowFitParametersBranch(0),
+  fFlowDebugInfoBranch(0),
   fnTracksBranch(0),
   fTrackPtBranch(0),
   fTrackPtErrorBranch(0),
@@ -219,6 +232,12 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fCaloJetPtArray(),
   fCaloJetPhiArray(),
   fCaloJetEtaArray(),
+  fFlowFitParameters(0),
+  fFlowFitDebugInfo(0),
+  fFirstFittedFlowComponent(0),
+  fLastFittedFlowComponent(0),
+  fFlowFitProbability(0),
+  fnFlowPFCandidates(0),
   fnTracks(0),
   fTrackPtVector(0),
   fTrackPtErrorVector(0),
@@ -257,6 +276,7 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
 MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in) :
   fJetType(in.fJetType),
   fJetAxis(in.fJetAxis),
+  fDoFlowDebug(in.fDoFlowDebug),
   fHeavyIonTree(in.fHeavyIonTree),
   fSkimTree(in.fSkimTree),
   fJetTree(in.fJetTree),
@@ -291,6 +311,8 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fCaloJetPtBranch(in.fCaloJetPtBranch),
   fCaloJetPhiBranch(in.fCaloJetPhiBranch),
   fCaloJetEtaBranch(in.fCaloJetEtaBranch),
+  fFlowFitParametersBranch(in.fFlowFitParametersBranch),
+  fFlowDebugInfoBranch(in.fFlowDebugInfoBranch),
   fnTracksBranch(in.fnTracksBranch),
   fTrackPtBranch(in.fTrackPtBranch),
   fTrackPtErrorBranch(in.fTrackPtErrorBranch),
@@ -323,6 +345,12 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fnGenJets(in.fnGenJets),
   fnCaloJets(in.fnCaloJets),
   fEventWeight(in.fEventWeight),
+  fFlowFitParameters(in.fFlowFitParameters),
+  fFlowFitDebugInfo(in.fFlowFitDebugInfo),
+  fFirstFittedFlowComponent(in.fFirstFittedFlowComponent),
+  fLastFittedFlowComponent(in.fLastFittedFlowComponent),
+  fFlowFitProbability(in.fFlowFitProbability),
+  fnFlowPFCandidates(in.fnFlowPFCandidates),
   fnTracks(in.fnTracks),
   fTrackPtVector(in.fTrackPtVector),
   fTrackPhiVector(in.fTrackPhiVector),
@@ -380,6 +408,7 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   
   fJetType = in.fJetType;
   fJetAxis = in.fJetAxis;
+  fDoFlowDebug = in.fDoFlowDebug;
   fHeavyIonTree = in.fHeavyIonTree;
   fSkimTree = in.fSkimTree;
   fJetTree = in.fJetTree;
@@ -414,6 +443,8 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fCaloJetPtBranch = in.fCaloJetPtBranch;
   fCaloJetPhiBranch = in.fCaloJetPhiBranch;
   fCaloJetEtaBranch = in.fCaloJetEtaBranch;
+  fFlowFitParametersBranch = in.fFlowFitParametersBranch;
+  fFlowDebugInfoBranch = in.fFlowDebugInfoBranch;
   fnTracksBranch = in.fnTracksBranch;
   fTrackPtBranch = in.fTrackPtBranch;
   fTrackPtErrorBranch = in.fTrackPtErrorBranch;
@@ -446,6 +477,12 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fnGenJets = in.fnGenJets;
   fnCaloJets = in.fnCaloJets;
   fEventWeight = in.fEventWeight;
+  fFlowFitParameters = in.fFlowFitParameters;
+  fFlowFitDebugInfo = in.fFlowFitDebugInfo;
+  fFirstFittedFlowComponent = in.fFirstFittedFlowComponent;
+  fLastFittedFlowComponent = in.fLastFittedFlowComponent;
+  fFlowFitProbability = in.fFlowFitProbability;
+  fnFlowPFCandidates = in.fnFlowPFCandidates;
   fnTracks = in.fnTracks;
   
   for(Int_t i = 0; i < fnMaxJet; i++){
@@ -591,6 +628,14 @@ void MonteCarloForestReader::Initialize(){
   fJetTree->SetBranchAddress("calophi", &fCaloJetPhiArray, &fCaloJetPhiBranch);
   fJetTree->SetBranchStatus("caloeta", 1);
   fJetTree->SetBranchAddress("caloeta", &fCaloJetEtaArray, &fCaloJetEtaBranch);
+
+  // Load the flow subtraction debug information
+  if(fDoFlowDebug){
+    fJetTree->SetBranchStatus("flowFitParameters", 1);
+    fJetTree->SetBranchAddress("flowFitParameters", &fFlowFitParameters, &fFlowFitParametersBranch);
+    fJetTree->SetBranchStatus("flowFitDebugInfo", 1);
+    fJetTree->SetBranchAddress("flowFitDebugInfo", &fFlowFitDebugInfo, &fFlowDebugInfoBranch);
+  }
   
   // Connect the branches to the track tree
   /*
@@ -703,7 +748,31 @@ void MonteCarloForestReader::GetEvent(Int_t iEvent){
    
   // Read the numbers of generator level particles for this event
   fnGenParticles = fGenParticlePtArray->size();
+
+  // Extract information from the flow debug vectors
+  if(fDoFlowDebug){
+    DecodeFlowDebugVectors();
+  }
 }
+
+// Exctract information from the flow debug vectors
+void MonteCarloForestReader::DecodeFlowDebugVectors(){
+  
+  // The last entry in the flow parameter vector gives the first fitted flow component
+  fFirstFittedFlowComponent = fFlowFitParameters->back();
+
+  // The last fitted component can be calculated from the size of the fir parameter vector
+  fLastFittedFlowComponent = fFirstFittedFlowComponent + ((fFlowFitParameters->size() - 4) / 2) - 1;
+
+  // The flow fit probability is calculated using the following formula
+  Int_t chi2index = fFlowFitParameters->size() - 3;
+  fFlowFitProbability = ROOT::Math::chisquared_cdf_c(fFlowFitParameters->at(chi2index), fFlowFitParameters->at(chi2index + 1));
+
+  // The number of PF candidates used to determine if flow fit can be done is the first index in debug vector
+  fnFlowPFCandidates = fFlowFitDebugInfo->at(0);
+
+}
+
 
 // Getter for number of events in the tree
 Int_t MonteCarloForestReader::GetNEvents() const{
@@ -1080,6 +1149,26 @@ Float_t MonteCarloForestReader::GetMatchedRecoEta(Int_t iJet) const{
   // Return the matching jet eta
   if(fJetAxis == 0) return fJetEtaArray[matchingIndex];
   return fJetWTAEtaArray[matchingIndex];
+}
+
+// Getter for the first flow component in the flow fit for background subtraction
+Int_t MonteCarloForestReader::GetFirstFittedFlowComponent() const{
+  return fFirstFittedFlowComponent;
+}
+
+// Getter for the last flow component in the flow fit for background subtraction
+Int_t MonteCarloForestReader::GetLastFittedFlowComponent() const{
+  return fLastFittedFlowComponent;
+}
+
+// Getter for the flow fit probability
+Double_t MonteCarloForestReader::GetFlowFitProbability() const{
+  return fFlowFitProbability;
+}
+
+// Get the number of PF candidates that was included in the flow with for background subtraction
+Int_t MonteCarloForestReader::GetNFlowPFCandidates() const{
+  return fnFlowPFCandidates;
 }
 
 // Getter for vertex z position

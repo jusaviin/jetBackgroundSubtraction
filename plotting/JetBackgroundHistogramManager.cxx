@@ -21,6 +21,7 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager() :
   fLoadJetPtClosureHistograms(false),
   fLoadJetPtResponseMatrix(false),
   fLoadJetEventPlaneCorrelationHistograms(false),
+  fLoadFlowFitParameterHistograms(false),
   fFirstLoadedCentralityBin(0),
   fLastLoadedCentralityBin(1),
   fFirstLoadedJetPtBin(0),
@@ -83,11 +84,18 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager() :
     for(int iJetType = 0; iJetType < knJetTypes; iJetType++){
       for(int iJetPt = 0; iJetPt < kMaxJetPtBins; iJetPt++){
         for(int iOrder = 0; iOrder < JetBackgroundHistograms::knEventPlanes; iOrder++){
-          fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt] = NULL;
+          for(int iFlowFit = 0; iFlowFit < knFlowFitFlags+1; iFlowFit++){
+            fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit] = NULL;
+          } // Flow fit flag
         } // Event plane order loop
       } // Jet pT loop
     } // Jet type loop
 
+    // Flow fit parameter debug histograms
+    for(int iJetPt = 0; iJetPt < kMaxJetPtBins; iJetPt++){
+      fhFlowFitProbability[iCentrality][iJetPt] = NULL;
+      fhFlowFitPFCandidates[iCentrality][iJetPt] = NULL;
+    }
   } // Centrality loop
 }
 
@@ -169,6 +177,7 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager(const JetBackground
   fLoadJetPtClosureHistograms(in.fLoadJetPtClosureHistograms),
   fLoadJetPtResponseMatrix(in.fLoadJetPtResponseMatrix),
   fLoadJetEventPlaneCorrelationHistograms(in.fLoadJetEventPlaneCorrelationHistograms),
+  fLoadFlowFitParameterHistograms(in.fLoadFlowFitParameterHistograms),
   fFirstLoadedCentralityBin(in.fFirstLoadedCentralityBin),
   fLastLoadedCentralityBin(in.fLastLoadedCentralityBin),
   fFirstLoadedJetPtBin(in.fFirstLoadedJetPtBin),
@@ -226,10 +235,18 @@ JetBackgroundHistogramManager::JetBackgroundHistogramManager(const JetBackground
     for(int iJetType = 0; iJetType < knJetTypes; iJetType++){
       for(int iJetPt = 0; iJetPt < kMaxJetPtBins; iJetPt++){
         for(int iOrder = 0; iOrder < JetBackgroundHistograms::knEventPlanes; iOrder++){
-          fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt] = in.fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt];
+          for(int iFlowFit = 0; iFlowFit < knFlowFitFlags+1; iFlowFit++){
+          fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit] = in.fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit];
+          } // Flow fit flag
         } // Event plane order loop
       } // Jet pT loop
     } // Jet type loop
+
+    // Flow fit parameter debug histograms
+    for(int iJetPt = 0; iJetPt < kMaxJetPtBins; iJetPt++){
+      fhFlowFitProbability[iCentrality][iJetPt] = in.fhFlowFitProbability[iCentrality][iJetPt];
+      fhFlowFitPFCandidates[iCentrality][iJetPt] = in.fhFlowFitPFCandidates[iCentrality][iJetPt];
+    }
 
   } // Centrality loop
 }
@@ -270,6 +287,9 @@ void JetBackgroundHistogramManager::LoadHistograms(){
 
   // Load the jet-event plane correlation histograms
   LoadJetEventPlaneHistograms();
+
+  // Load the flow fit parameter debug histograms
+  LoadFlowFitParameterHistograms();
   
 }
 
@@ -569,6 +589,7 @@ void JetBackgroundHistogramManager::LoadJetPtResponseMatrix(){
  *       Axis 0        Jet-event plane correlation
  *       Axis 1                 Jet pT
  *       Axis 2               Centrality
+ *       Axis 3            Flag for flow fit
  */
 void JetBackgroundHistogramManager::LoadJetEventPlaneHistograms(){
 
@@ -584,9 +605,9 @@ void JetBackgroundHistogramManager::LoadJetEventPlaneHistograms(){
   THnSparseD* histogramArray;
   
   // Define arrays to help find the histograms
-  int axisIndices[2] = {0};
-  int lowLimits[2] = {0};
-  int highLimits[2] = {0};
+  int axisIndices[3] = {0};
+  int lowLimits[3] = {0};
+  int highLimits[3] = {0};
   
   int nAxes = 1;           // Number of constraining axes for this iteration
   
@@ -607,7 +628,7 @@ void JetBackgroundHistogramManager::LoadJetEventPlaneHistograms(){
         axisIndices[0] = 2; lowLimits[0] = lowerCentralityBin; highLimits[0] = higherCentralityBin;  // Centrality
 
         // First, load the histograms without jet pT requirements
-        fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
+        fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][knFlowFitFlags] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
 
         // Next, load the histograms for different jet pT bins
         nAxes++;
@@ -620,13 +641,112 @@ void JetBackgroundHistogramManager::LoadJetEventPlaneHistograms(){
           axisIndices[1] = 1; lowLimits[1] = lowerJetPtBin; highLimits[1] = higherJetPtBin;  // Jet pT
 
           // Load the histograms with jet pT binning
-          fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
+          fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][knFlowFitFlags] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
 
         } // Jet pT loop
         histogramArray->GetAxis(1)->SetRange(0,0);
+
+        // Load the histograms in cases where the flow fit is and is not done
+        for(int iFlowFit = 0; iFlowFit < knFlowFitFlags; iFlowFit++){
+
+          // Select the flow fit bin indices
+          axisIndices[1] = 3; lowLimits[1] = iFlowFit+1; highLimits[0] = iFlowFit+1;  // Flow fit flag
+
+          // First, load the histograms without jet pT requirements
+          fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][iFlowFit] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
+
+          // Next, load the histograms for different jet pT bins
+          nAxes++;
+          for(int iJetPt = fFirstLoadedJetPtBin; iJetPt <= fLastLoadedJetPtBin; iJetPt++){
+
+            // Select the bin indices
+            lowerJetPtBin = fJetPtIndices[iJetPt];
+            higherJetPtBin = fJetPtIndices[iJetPt+1]+duplicateRemover;
+
+            axisIndices[2] = 1; lowLimits[2] = lowerJetPtBin; highLimits[2] = higherJetPtBin;  // Jet pT
+
+            // Load the histograms with jet pT binning
+            fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
+
+          } // Jet pT loop
+          histogramArray->GetAxis(1)->SetRange(0,0);
+
+        } // Flow fit loop
+        histogramArray->GetAxis(3)->SetRange(0,0);
       } // Centrality loop
     } // Event plane order loop
   } // Jet type loop
+}
+
+/*
+ * Loader for flow fit parameter debug histograms
+ *
+ * THnSparse for flow fit parameters:
+ *
+ *   Histogram name: flowFitParameters
+ *
+ *     Axis index                 Content of axis
+ * -----------------------------------------------------------------
+ *       Axis 0        Number of PF candidates used for the fit
+ *       Axis 1           Probability that the fit is good
+ *       Axis 2                       Jet pT
+ *       Axis 3                     Centrality
+ */
+void JetBackgroundHistogramManager::LoadFlowFitParameterHistograms(){
+
+  // Only load the jet histograms is selected to do so
+  if(!fLoadFlowFitParameterHistograms) return;
+  
+  // Define helper variables
+  int duplicateRemover = -1;
+  int lowerCentralityBin = 0;
+  int higherCentralityBin = 0;
+  int lowerJetPtBin = 0;
+  int higherJetPtBin = 0;
+  THnSparseD* histogramArray;
+  
+  // Define arrays to help find the histograms
+  int axisIndices[2] = {0};
+  int lowLimits[2] = {0};
+  int highLimits[2] = {0};
+  
+  int nAxes = 1;           // Number of constraining axes for this iteration
+  
+  // Open the multidimensional histogram from which the histograms are projected
+  histogramArray = (THnSparseD*) fInputFile->Get("flowFitParameters");
+  
+  for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
+
+    // Reset the variable for axis constraints
+    nAxes = 1;
+    
+    // Select the bin indices
+    lowerCentralityBin = fCentralityBinIndices[iCentrality];
+    higherCentralityBin = fCentralityBinIndices[iCentrality+1]+duplicateRemover;
+    
+    axisIndices[0] = 3; lowLimits[0] = lowerCentralityBin; highLimits[0] = higherCentralityBin;  // Centrality
+
+    // First, load the histograms without jet pT requirements
+    fhFlowFitPFCandidates[iCentrality][fnJetPtBins] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
+    fhFlowFitProbability[iCentrality][fnJetPtBins] = FindHistogram(histogramArray,1,nAxes,axisIndices,lowLimits,highLimits);
+
+    // Next, load the histograms for different jet pT bins
+    nAxes++;
+    for(int iJetPt = fFirstLoadedJetPtBin; iJetPt <= fLastLoadedJetPtBin; iJetPt++){
+
+      // Select the bin indices
+      lowerJetPtBin = fJetPtIndices[iJetPt];
+      higherJetPtBin = fJetPtIndices[iJetPt+1]+duplicateRemover;
+
+      axisIndices[1] = 2; lowLimits[1] = lowerJetPtBin; highLimits[1] = higherJetPtBin;  // Jet pT
+
+      // Load the histograms with jet pT binning
+      fhFlowFitPFCandidates[iCentrality][iJetPt] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
+      fhFlowFitProbability[iCentrality][iJetPt] = FindHistogram(histogramArray,1,nAxes,axisIndices,lowLimits,highLimits);
+
+    } // Jet pT loop
+    histogramArray->GetAxis(2)->SetRange(0,0);
+  } // Centrality loop
 }
 
 /*
@@ -786,6 +906,9 @@ void JetBackgroundHistogramManager::Write(const char* fileName, const char* file
 
   // Write the jet-event plane correlation histograms to the output file
   WriteJetEventPlaneHistograms();
+
+  // Write the flow fit parameter debug histograms to the output file
+  WriteFlowFitParameterHistograms();
   
   // Write the card to the output file if it is not already written
   if(!gDirectory->GetDirectory("JCard")) fCard->Write(outputFile);
@@ -955,15 +1078,31 @@ void JetBackgroundHistogramManager::WriteJetEventPlaneHistograms(){
 
         // First write the histograms without jet pT selection
         histogramNamer = Form("%sEventPlaneOrder%d_C%d", fJetHistogramName[iJetType], iOrder+2, iCentrality);
-        if(fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins]) fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins]->Write(histogramNamer.Data(), TObject::kOverwrite);
+        if(fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][knFlowFitFlags]) fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][knFlowFitFlags]->Write(histogramNamer.Data(), TObject::kOverwrite);
 
         for(int iJetPt = fFirstLoadedJetPtBin; iJetPt <= fLastLoadedJetPtBin; iJetPt++){
 
           // Then write the histograms with jet pT selection
           histogramNamer = Form("%sEventPlaneOrder%d_C%dT%d", fJetHistogramName[iJetType], iOrder+2, iCentrality, iJetPt);
-          if(fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt]) fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt]->Write(histogramNamer.Data(), TObject::kOverwrite);
+          if(fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][knFlowFitFlags]) fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][knFlowFitFlags]->Write(histogramNamer.Data(), TObject::kOverwrite);
 
         } // Jet pT loop
+
+        for(int iFlowFit = 0; iFlowFit < knFlowFitFlags; iFlowFit++){
+
+          // First write the histograms without jet pT selection
+          histogramNamer = Form("%sEventPlaneOrder%d_C%dF%d", fJetHistogramName[iJetType], iOrder+2, iCentrality, iFlowFit);
+          if(fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][iFlowFit]) fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][iFlowFit]->Write(histogramNamer.Data(), TObject::kOverwrite);
+
+          for(int iJetPt = fFirstLoadedJetPtBin; iJetPt <= fLastLoadedJetPtBin; iJetPt++){
+
+            // Then write the histograms with jet pT selection
+            histogramNamer = Form("%sEventPlaneOrder%d_C%dT%dF%d", fJetHistogramName[iJetType], iOrder+2, iCentrality, iJetPt, iFlowFit);
+            if(fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit]) fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit]->Write(histogramNamer.Data(), TObject::kOverwrite);
+
+          } // Jet pT loop
+
+        } // Flow fit loop
       } // Centrality loop
   
       // Return back to main directory
@@ -974,131 +1113,61 @@ void JetBackgroundHistogramManager::WriteJetEventPlaneHistograms(){
 }
 
 /*
- * Load the selected histograms from a file containing readily processed histograms
+ *Write the flow fit parameter debug histograms to the file that is currently open
  */
-void JetBackgroundHistogramManager::LoadProcessedHistograms(){
+void JetBackgroundHistogramManager::WriteFlowFitParameterHistograms(){
   
-  // Helper variable for finding names of loaded histograms
+  // Helper variable for histogram naming
   TString histogramNamer;
-  TString folderNamer;
   
-  // Always load the number of events histogram
-  fhEvents = (TH1D*) fInputFile->Get("nEvents");                           // Number of events surviving different event cuts
+  // Write the jet histograms to the output file
+  if(!fLoadFlowFitParameterHistograms) return;  // Only write the histograms if they are loaded
   
-  // Load the event information histograms
-  if(fLoadEventInformation){
-    fhVertexZ = (TH1D*) fInputFile->Get("vertexZ");                        // Vertex z position
-    fhVertexZWeighted = (TH1D*) fInputFile->Get("vertexZweighted");        // MC weighted vertex z position
-    fhCentrality = (TH1D*) fInputFile->Get("centrality");                  // Centrality in all events
-    fhCentralityWeighted = (TH1D*) fInputFile->Get("centralityWeighted");  // MC weighted centrality in all events
-    fhPtHat = (TH1D*) fInputFile->Get("pthat");                            // pT hat for MC events
-    fhPtHatWeighted = (TH1D*) fInputFile->Get("pthatWeighted");            // Weighted pT hat for MC events
-  }
+  // Create a directory for the histograms if it does not already exist
+  histogramNamer = "flowFitParameters";
+  if(!gDirectory->GetDirectory(histogramNamer)) gDirectory->mkdir(histogramNamer);
+  gDirectory->cd(histogramNamer);
   
-  // Load the jet histograms from the processed file
-  if(fLoadJets){
-    for(int iJetType = 0; iJetType < knJetTypes; iJetType++){  
-      for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
-        for(int iParton = 0; iParton < JetBackgroundHistograms::knInitialPartonTypes+1; iParton++){
-          for(int iMatch = 0; iMatch < JetBackgroundHistograms::knMatchingTypes+1; iMatch++){
+  for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
 
-            // Load jet pT histograms
-            histogramNamer = Form("%s/%sPt%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
-            fhJetPt[iJetType][iCentrality][iParton][iMatch] = (TH1D*) fInputFile->Get(histogramNamer.Data());
-    
-            // Load jet phi histograms
-            histogramNamer = Form("%s/%sPhi%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
-            fhJetPhi[iJetType][iCentrality][iParton][iMatch] = (TH1D*) fInputFile->Get(histogramNamer.Data());
-    
-            // Load jet eta histograms
-            histogramNamer = Form("%s/%sEta%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
-            fhJetEta[iJetType][iCentrality][iParton][iMatch] = (TH1D*) fInputFile->Get(histogramNamer.Data());
-    
-            // Load jet eta-phi histograms
-            histogramNamer = Form("%s/%sEtaPhi%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
-            if(fLoad2DHistograms){
-             fhJetEtaPhi[iJetType][iCentrality][iParton][iMatch] = (TH2D*) fInputFile->Get(histogramNamer.Data());
-            } // Loading 2D histograms
-          } // Matching status loop
-        } // Initiating parton type loop
-      } // Centrality loop
-    } // Jet type loop
-  } // Loading jet histograms
+    // First write the histograms without jet pT selection
+    histogramNamer = Form("flowFitPFCandidates_C%d", iCentrality);
+    if(fhFlowFitPFCandidates[iCentrality][fnJetPtBins]) fhFlowFitPFCandidates[iCentrality][fnJetPtBins]->Write(histogramNamer.Data(), TObject::kOverwrite);
+    histogramNamer = Form("flowFitProbability_C%d", iCentrality);
+    if(fhFlowFitProbability[iCentrality][fnJetPtBins]) fhFlowFitProbability[iCentrality][fnJetPtBins]->Write(histogramNamer.Data(), TObject::kOverwrite);
 
-  // Load the jet pT closure histograms from a processed file
-  if(fLoadJetPtClosureHistograms){
-    
-    // Centrality loop
-    for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
-      
-      // Loop over closure particles (quark/gluon/no selection)
-      for(int iParton = 0; iParton < JetBackgroundHistograms::knInitialPartonTypes+1; iParton++){
-        
-        // Loop over generator level jet pT bins
-        for(int iGenJetPt = 0; iGenJetPt <= knGenJetPtBins; iGenJetPt++){
-          
-          // Loop over jet eta bins
-          for(int iJetEta = 0; iJetEta <= knJetEtaBins; iJetEta++){
+    for(int iJetPt = fFirstLoadedJetPtBin; iJetPt <= fLastLoadedJetPtBin; iJetPt++){
 
-            // Loop over jet phi bins
-            for(int iJetPhi = 0; iJetPhi <= knJetPhiBins; iJetPhi++){
-            
-              histogramNamer = Form("jetPtClosure_%s/jetPtClosure_%s%s_C%d", fJetHistogramName[0], fJetHistogramName[0], fInitialPartonName[iParton], iCentrality);
-              if(iGenJetPt < knGenJetPtBins) histogramNamer.Append(Form("T%d",iGenJetPt));
-              if(iJetEta < knJetEtaBins) histogramNamer.Append(Form("E%d",iJetEta));
-              if(iJetPhi < knJetPhiBins) histogramNamer.Append(Form("P%d",iJetPhi));
-              fhJetPtClosure[iGenJetPt][iJetEta][iJetPhi][iCentrality][iParton] = (TH1D*) fInputFile->Get(histogramNamer.Data());
-            
-            } // Jet phi bin loop
-          } // Jet eta bin loop
-        } // Generator level jet pT loop
-      } // Closure particle type (quark/gluon) loop
-    } // Centrality loop
-    
-    // Return back to main directory
-    gDirectory->cd("../");
-    
-  } // Opening jet pT closure histograms
+      // Then write the histograms with jet pT selection
+      histogramNamer = Form("flowFitPFCandidates_C%dJ%d", iCentrality, iJetPt);
+      if(fhFlowFitPFCandidates[iCentrality][fnJetPtBins]) fhFlowFitPFCandidates[iCentrality][iJetPt]->Write(histogramNamer.Data(), TObject::kOverwrite);
+      histogramNamer = Form("flowFitProbability_C%dJ%D", iCentrality, iJetPt);
+      if(fhFlowFitProbability[iCentrality][fnJetPtBins]) fhFlowFitProbability[iCentrality][iJetPt]->Write(histogramNamer.Data(), TObject::kOverwrite);
 
-  // Load the jet pT response matrices from a processed file
-  if(fLoadJetPtResponseMatrix){
+    } // Jet pT loop
 
-    // Centrality loop
-    for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
-
-      histogramNamer = Form("jetPtResponseMatrix/jetPtResponseMatrix_C%d", iCentrality);
-      fhJetPtResponseMatrix[iCentrality] = (TH2D*)fInputFile->Get(histogramNamer.Data());
-
-    }  // Centrality loop
-  } // Loading jet pT response matrices
-
-  // Load the jet-event plane correlation histograms from the processed file
-  if(fLoadJetEventPlaneCorrelationHistograms){
-    for(int iJetType = 0; iJetType < knJetTypes; iJetType++){
-      for(int iOrder = 0; iOrder < JetBackgroundHistograms::knEventPlanes; iOrder++){
+  } // Centrality loop
   
-        // There are different folders for each jet type and each event plane order
-        folderNamer = Form("%sEventPlaneOrder%d", fJetHistogramName[iJetType], iOrder+2);
-
-        for(int iCentrality = fFirstLoadedCentralityBin; iCentrality <= fLastLoadedCentralityBin; iCentrality++){
-
-          // Load the histograms without jet pT restrictions
-          histogramNamer = Form("%s/%s_C%d", folderNamer.Data(), folderNamer.Data(), iCentrality);
-          fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins] = (TH1D*) fInputFile->Get(histogramNamer.Data());
-
-          for(int iJetPt = fFirstLoadedJetPtBin; iJetPt <= fLastLoadedJetPtBin; iJetPt++){
-
-            // Load the histograms without jet pT restrictions
-            histogramNamer = Form("%s/%s_C%dT%d", folderNamer.Data(), folderNamer.Data(), iCentrality, iJetPt);
-            fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt] = (TH1D*) fInputFile->Get(histogramNamer.Data());
-
-          } // Jet pT loop
-        } // Centrality loop
-      } // Event plane order loop
-    } // Jet type loop
-  } // Loading jet-event plane correlation histograms
-
+  // Return back to main directory
+  gDirectory->cd("../");
+  
 }
+
+/*
+ * Load the event histogram
+ */
+void JetBackgroundHistogramManager::LoadEventsHistogram(){
+  fhEvents = (TH1D*) fInputFile->Get("nEvents");
+}
+
+/*
+ * Load the jet pT histogram
+ */
+void JetBackgroundHistogramManager::LoadJetPtHistogram(const int iCentrality, const int iJetType, const int iParton, const int iMatch){
+  TString histogramNamer = Form("%s/%sPt%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
+  fhJetPt[iJetType][iCentrality][iParton][iMatch] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+}
+
 
 /*
  * Read the bin indices for given bin borders
@@ -1232,6 +1301,10 @@ void JetBackgroundHistogramManager::SetLoadJetEventPlaneHistograms(const bool lo
   fLoadJetEventPlaneCorrelationHistograms = loadOrNot;
 }
 
+// Setter for loading flow fit parameter debug histograms
+void JetBackgroundHistogramManager::SetLoadFlowFitParameterHistograms(const bool loadOrNot){
+  fLoadFlowFitParameterHistograms = loadOrNot;
+}
 
 // Setter for loaded centrality bins
 void JetBackgroundHistogramManager::SetCentralityBinRange(const int first, const int last){
@@ -1298,123 +1371,225 @@ double JetBackgroundHistogramManager::GetJetPtBinBorder(const int iJetPt) const{
 // Getters for event information histograms
 
 // Getter for z-vertex histogram
-TH1D* JetBackgroundHistogramManager::GetHistogramVertexZ() const{
+TH1D* JetBackgroundHistogramManager::GetHistogramVertexZ(){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhVertexZ == NULL) fhVertexZ = (TH1D*) fInputFile->Get("vertexZ"); 
+
   return fhVertexZ;
 }
 
 // Getter for z-vertex histogram
-TH1D* JetBackgroundHistogramManager::GetHistogramVertexZWeighted() const{
+TH1D* JetBackgroundHistogramManager::GetHistogramVertexZWeighted(){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhVertexZWeighted == NULL) fhVertexZWeighted = (TH1D*) fInputFile->Get("vertexZweighted"); 
+
   return fhVertexZWeighted;
 }
 
 // Getter for histogram for number of events surviving different event cuts
-TH1D* JetBackgroundHistogramManager::GetHistogramEvents() const{
+TH1D* JetBackgroundHistogramManager::GetHistogramEvents(){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhEvents == NULL) LoadEventsHistogram();
+
   return fhEvents;
 }
 
 // Getter for centrality histogram in all events
-TH1D* JetBackgroundHistogramManager::GetHistogramCentrality() const{
+TH1D* JetBackgroundHistogramManager::GetHistogramCentrality(){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhCentrality == NULL) fhCentrality = (TH1D*) fInputFile->Get("centrality"); 
+
   return fhCentrality;
 }
 
 // Getter for weighted centrality histogram in all events
-TH1D* JetBackgroundHistogramManager::GetHistogramCentralityWeighted() const{
+TH1D* JetBackgroundHistogramManager::GetHistogramCentralityWeighted(){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhCentralityWeighted == NULL) fhCentralityWeighted = (TH1D*) fInputFile->Get("centralityWeighted"); 
+
   return fhCentralityWeighted;
 }
 
 // Getters for jet histograms
 
 // Getter for jet pT histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramJetPt(int iCentrality, int iJetType, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramJetPt(const int iCentrality, const int iJetType, const int iParton, const int iMatch){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhJetPt[iJetType][iCentrality][iParton][iMatch] == NULL) LoadJetPtHistogram(iCentrality, iJetType, iParton, iParton);
+
   return fhJetPt[iJetType][iCentrality][iParton][iMatch];
 }
 
 // Getter for inclusive jet pT histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetPt(int iCentrality, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetPt(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetPt(iCentrality, kInclusiveJet, iParton, iMatch);
 }
 
 // Getter for leading jet pT histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetPt(int iCentrality, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetPt(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetPt(iCentrality, kLeadingJet, iParton, iMatch);
 }
 
 // Getter for jet phi histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramJetPhi(int iCentrality, int iJetType, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramJetPhi(const int iCentrality, const int iJetType, const int iParton, const int iMatch){
+
+  if(fhJetPhi[iJetType][iCentrality][iParton][iMatch] == NULL){
+    TString histogramNamer = Form("%s/%sPhi%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
+    fhJetPhi[iJetType][iCentrality][iParton][iMatch] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+  }
+
   return fhJetPhi[iJetType][iCentrality][iParton][iMatch];
 }
 
 // Getter for inclusive jet phi histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetPhi(int iCentrality, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetPhi(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetPhi(iCentrality, kInclusiveJet, iParton, iMatch);
 }
 
 // Getter for leading jet phi histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetPhi(int iCentrality, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetPhi(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetPhi(iCentrality, kLeadingJet, iParton, iMatch);
 }
 
 // Getter for jet eta histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramJetEta(int iCentrality, int iJetType, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramJetEta(const int iCentrality, const int iJetType, const int iParton, const int iMatch){
+
+  if(fhJetEta[iJetType][iCentrality][iParton][iMatch] == NULL){
+    TString histogramNamer = Form("%s/%sEta%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
+    fhJetEta[iJetType][iCentrality][iParton][iMatch] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+  }
+
   return fhJetEta[iJetType][iCentrality][iParton][iMatch];
 }
 
 // Getter for inclusive jet eta histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEta(int iCentrality, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEta(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetEta(iCentrality, kInclusiveJet, iParton, iMatch);
 }
 
 // Getter for leading jet eta histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetEta(int iCentrality, int iParton, int iMatch) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetEta(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetEta(iCentrality, kLeadingJet, iParton, iMatch);
 }
 
 // Getter for 2D eta-phi histogram for jets
-TH2D* JetBackgroundHistogramManager::GetHistogramJetEtaPhi(int iCentrality, int iJetType, int iParton, int iMatch) const{
+TH2D* JetBackgroundHistogramManager::GetHistogramJetEtaPhi(const int iCentrality, const int iJetType, const int iParton, const int iMatch){
+
+  if(fhJetEtaPhi[iJetType][iCentrality][iParton][iMatch] == NULL){
+    TString histogramNamer = Form("%s/%sEtaPhi%s%s_C%d", fJetHistogramName[iJetType], fJetHistogramName[iJetType], fInitialPartonName[iParton], fMatchingName[iMatch], iCentrality);
+    fhJetEtaPhi[iJetType][iCentrality][iParton][iMatch] = (TH2D*) fInputFile->Get(histogramNamer.Data());
+  }
+
   return fhJetEtaPhi[iJetType][iCentrality][iParton][iMatch];
 }
 
 // Getter for inclusive jet phi histograms
-TH2D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEtaPhi(int iCentrality, int iParton, int iMatch) const{
+TH2D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEtaPhi(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetEtaPhi(iCentrality, kInclusiveJet, iParton, iMatch);
 }
 
 // Getter for leading jet phi histograms
-TH2D* JetBackgroundHistogramManager::GetHistogramLeadingJetEtaPhi(int iCentrality, int iParton, int iMatch) const{
+TH2D* JetBackgroundHistogramManager::GetHistogramLeadingJetEtaPhi(const int iCentrality, const int iParton, const int iMatch){
   return GetHistogramJetEtaPhi(iCentrality, kLeadingJet, iParton, iMatch);
 }
 
 // Getter for jet pT closure histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramJetPtClosure(const int iGenPtBin, const int iEtaBin, const int iPhiBin, const int iCentrality, const int iParton) const{
+TH1D* JetBackgroundHistogramManager::GetHistogramJetPtClosure(const int iGenPtBin, const int iEtaBin, const int iPhiBin, const int iCentrality, const int iParton){
+
+  // If the histogram is NULL, try to load it from the input file
+  if(fhJetPtClosure[iGenPtBin][iEtaBin][iPhiBin][iCentrality][iParton] == NULL){
+    TString histogramNamer = Form("jetPtClosure_%s/jetPtClosure_%s%s_C%d", fJetHistogramName[0], fJetHistogramName[0], fInitialPartonName[iParton], iCentrality);
+    if(iGenPtBin < knGenJetPtBins) histogramNamer.Append(Form("T%d",iGenPtBin));
+    if(iEtaBin < knJetEtaBins) histogramNamer.Append(Form("E%d",iEtaBin));
+    if(iPhiBin < knJetPhiBins) histogramNamer.Append(Form("P%d",iPhiBin));
+    fhJetPtClosure[iGenPtBin][iEtaBin][iPhiBin][iCentrality][iParton] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+  }
+
   return fhJetPtClosure[iGenPtBin][iEtaBin][iPhiBin][iCentrality][iParton];
 }
 
 // Getter for jet pT response matrix
-TH2D* JetBackgroundHistogramManager::GetHistogramJetPtResponseMatrix(const int iCentrality) const{
+TH2D* JetBackgroundHistogramManager::GetHistogramJetPtResponseMatrix(const int iCentrality){
+
+  // If the histogram is NULL, try to load it from the input file
+  if(fhJetPtResponseMatrix[iCentrality] == NULL){
+    fhJetPtResponseMatrix[iCentrality] = (TH2D*)fInputFile->Get(Form("jetPtResponseMatrix/jetPtResponseMatrix_C%d", iCentrality));
+  }
+
   return fhJetPtResponseMatrix[iCentrality];
 }
 
 // Getter for jet-event plane histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramJetEventPlane(int iOrder, int iJetType, int iCentrality, int iJetPt){
+TH1D* JetBackgroundHistogramManager::GetHistogramJetEventPlane(const int iOrder, const int iJetType, const int iCentrality, int iJetPt, const int iFlowFit){
+
+  // Negative jet pT bins are interpreted as jet pT integrated histograms
   if(iJetPt < 0) iJetPt = fnJetPtBins;
-  return fhJetEventPlane[iJetType][iOrder-2][iCentrality][iJetPt];
+
+  // If the histogram is NULL, try to load it from the input file
+  if(fhJetEventPlane[iJetType][iOrder-2][iCentrality][iJetPt][iFlowFit] == NULL){
+    TString histogramNamer = Form("%sEventPlaneOrder%d/%sEventPlaneOrder%d_C%d", fJetHistogramName[iJetType], iOrder+2, fJetHistogramName[iJetType], iOrder+2, iCentrality);
+    if(iJetPt < fnJetPtBins) histogramNamer.Append(Form("T%d",iJetPt));
+    if(iFlowFit < knFlowFitFlags) histogramNamer.Append(Form("F%d",iFlowFit));
+    fhJetEventPlane[iJetType][iOrder-2][iCentrality][iJetPt][iFlowFit] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+  }
+
+  return fhJetEventPlane[iJetType][iOrder-2][iCentrality][iJetPt][iFlowFit];
 }
 
 // Getter for inclusive jet-event plane histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEventPlane(int iOrder, int iCentrality, int iJetPt){
-  return GetHistogramJetEventPlane(iOrder, kInclusiveJet, iCentrality, iJetPt);
+TH1D* JetBackgroundHistogramManager::GetHistogramInclusiveJetEventPlane(const int iOrder, const int iCentrality, int iJetPt, const int iFlowFit){
+  return GetHistogramJetEventPlane(iOrder, kInclusiveJet, iCentrality, iJetPt, iFlowFit);
 }
 
 // Getter for leading jet-event plane histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetEventPlane(int iOrder, int iCentrality, int iJetPt){
-  return GetHistogramJetEventPlane(iOrder, kLeadingJet, iCentrality, iJetPt);
+TH1D* JetBackgroundHistogramManager::GetHistogramLeadingJetEventPlane(const int iOrder, const int iCentrality, int iJetPt, const int iFlowFit){
+  return GetHistogramJetEventPlane(iOrder, kLeadingJet, iCentrality, iJetPt, iFlowFit);
 }
 
 // Getter for calorimeter jet-event plane histograms
-TH1D* JetBackgroundHistogramManager::GetHistogramCalorimeterJetEventPlane(int iOrder, int iCentrality, int iJetPt){
-  return GetHistogramJetEventPlane(iOrder, kCalorimeterJet, iCentrality, iJetPt);
+TH1D* JetBackgroundHistogramManager::GetHistogramCalorimeterJetEventPlane(const int iOrder, const int iCentrality, int iJetPt, const int iFlowFit){
+  return GetHistogramJetEventPlane(iOrder, kCalorimeterJet, iCentrality, iJetPt, iFlowFit);
 }
 
+// Getter for number of PF candidates included in the flow fit
+TH1D* JetBackgroundHistogramManager::GetHistogramFlowFitPFCandidates(const int iCentrality, int iJetPt){
+  
+  // Negative jet pT bins are interpreted as jet pT integrated histograms
+  if(iJetPt < 0) iJetPt = fnJetPtBins;
+
+  // If the histogram is NULL, try to load it from the input file
+  if(fhFlowFitPFCandidates[iCentrality][iJetPt] == NULL){
+    TString histogramNamer = Form("flowFitParameters/flowFitPFCandidates_C%d", iCentrality);
+    if(iJetPt < fnJetPtBins) histogramNamer.Append(Form("J%d",iJetPt));
+    fhFlowFitPFCandidates[iCentrality][iJetPt] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+  }
+
+  return fhFlowFitPFCandidates[iCentrality][iJetPt];
+
+}
+
+// Getter for probability that the flow fit is good
+TH1D* JetBackgroundHistogramManager::GetHistogramFlowFitProbability(const int iCentrality, int iJetPt){
+
+  // Negative jet pT bins are interpreted as jet pT integrated histograms
+  if(iJetPt < 0) iJetPt = fnJetPtBins;
+
+  // If the histogram is NULL, try to load it from the input file
+  if(fhFlowFitProbability[iCentrality][iJetPt] == NULL){
+    TString histogramNamer = Form("flowFitParameters/flowFitProbability_C%d", iCentrality);
+    if(iJetPt < fnJetPtBins) histogramNamer.Append(Form("J%d",iJetPt));
+    fhFlowFitProbability[iCentrality][iJetPt] = (TH1D*) fInputFile->Get(histogramNamer.Data());
+  }
+
+  return fhFlowFitProbability[iCentrality][iJetPt];
+
+}
 
 // Get the first loaded centrality bin
 int JetBackgroundHistogramManager::GetFirstCentralityBin() const{
@@ -1437,7 +1612,11 @@ int JetBackgroundHistogramManager::GetLastJetPtBin() const{
 }
 
 // Getter for the number of events passing the cuts
-int JetBackgroundHistogramManager::GetNEvents() const{
+int JetBackgroundHistogramManager::GetNEvents(){
+
+  // If the histogram is NULL, try to load the processed version of it
+  if(fhEvents == NULL) LoadEventsHistogram();
+
   return fhEvents->GetBinContent(fhEvents->FindBin(JetBackgroundHistograms::kVzCut));
 }
 

@@ -203,7 +203,7 @@ void constructJetPtClosures(TString inputFileList = ""){
 
   } else {
 
-    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetEventPlaneDeltaPhi_PbPbMC2018_noProbabilityCutForFlowFit_2024-08-02.root"));
+    inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundHistograms_defaultFlow_2024-08-10.root"));
     jetLegendString.push_back("Default flow");
     //inputFile.push_back(TFile::Open("eventPlaneCorrelation/jetBackgroundHistograms_noProbabilityCuts_2024-08-09.root"));
     //jetLegendString.push_back("No probability cuts");
@@ -238,7 +238,7 @@ void constructJetPtClosures(TString inputFileList = ""){
   bool drawPhiClosure = false;
   
   bool includeQuarkGluon = (nFiles == 1); // Include only quark and only gluon jet curves is only one file is provided
-  bool drawGaussFitsPt = true;
+  bool drawGaussFitsPt = false;
     
   bool fitResolution = false;  // Fit the jet pT resolution histograms
   
@@ -250,17 +250,10 @@ void constructJetPtClosures(TString inputFileList = ""){
 
   // Initialize histogram managers from each input file
   std::vector<JetBackgroundHistogramManager*> closureHistograms;
-  JetBackgroundHistogramManager* manager;
-
   for(auto thisFile : inputFile){
-    manager = new JetBackgroundHistogramManager(thisFile);
-
-    // Load the jet-event plane correlation histograms
-    manager->SetLoadJetPtClosureHistograms(true);
-    manager->LoadProcessedHistograms();
 
     // Add the histogram manager with properly loaded histograms to the manager of histogram managers
-    closureHistograms.push_back(manager);
+    closureHistograms.push_back(new JetBackgroundHistogramManager(thisFile));
   }
   
   // Find the correct number of centrality bins
