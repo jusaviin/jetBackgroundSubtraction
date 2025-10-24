@@ -650,7 +650,7 @@ void JetBackgroundHistogramManager::LoadJetEventPlaneHistograms(){
         for(int iFlowFit = 0; iFlowFit < knFlowFitFlags; iFlowFit++){
 
           // Select the flow fit bin indices
-          axisIndices[1] = 3; lowLimits[1] = iFlowFit+1; highLimits[0] = iFlowFit+1;  // Flow fit flag
+          axisIndices[1] = 3; lowLimits[1] = iFlowFit+1; highLimits[1] = iFlowFit+1;  // Flow fit flag
 
           // First, load the histograms without jet pT requirements
           fhJetEventPlane[iJetType][iOrder][iCentrality][fnJetPtBins][iFlowFit] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
@@ -669,6 +669,7 @@ void JetBackgroundHistogramManager::LoadJetEventPlaneHistograms(){
             fhJetEventPlane[iJetType][iOrder][iCentrality][iJetPt][iFlowFit] = FindHistogram(histogramArray,0,nAxes,axisIndices,lowLimits,highLimits);
 
           } // Jet pT loop
+          nAxes--;
           histogramArray->GetAxis(1)->SetRange(0,0);
 
         } // Flow fit loop
@@ -1533,7 +1534,7 @@ TH1D* JetBackgroundHistogramManager::GetHistogramJetEventPlane(const int iOrder,
 
   // If the histogram is NULL, try to load it from the input file
   if(fhJetEventPlane[iJetType][iOrder-2][iCentrality][iJetPt][iFlowFit] == NULL){
-    TString histogramNamer = Form("%sEventPlaneOrder%d/%sEventPlaneOrder%d_C%d", fJetHistogramName[iJetType], iOrder+2, fJetHistogramName[iJetType], iOrder+2, iCentrality);
+    TString histogramNamer = Form("%sEventPlaneOrder%d/%sEventPlaneOrder%d_C%d", fJetHistogramName[iJetType], iOrder, fJetHistogramName[iJetType], iOrder, iCentrality);
     if(iJetPt < fnJetPtBins) histogramNamer.Append(Form("T%d",iJetPt));
     if(iFlowFit < knFlowFitFlags) histogramNamer.Append(Form("F%d",iFlowFit));
     fhJetEventPlane[iJetType][iOrder-2][iCentrality][iJetPt][iFlowFit] = (TH1D*) fInputFile->Get(histogramNamer.Data());
