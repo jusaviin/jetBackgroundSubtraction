@@ -16,7 +16,7 @@ void debugJetEventPlaneVn(TString inputFileList = ""){
   std::vector<TString> saveNameString;
   std::vector<std::vector<bool>> drawFlowFitDebug; // Option to draw histograms with and without flow fit flag.
   TString saveComment;
-  AlgorithmLibrary *fitter = new AlgorithmLibrary();
+  AlgorithmLibrary* fitter = new AlgorithmLibrary();
 
   // If a text file is provided as input, read the input files and legend string from there. Otherwise use manually defined ones
   if(inputFileList.EndsWith(".txt")){
@@ -53,7 +53,8 @@ void debugJetEventPlaneVn(TString inputFileList = ""){
     cardVector.push_back(new JetBackgroundCard(thisFile));
   }
 
-  TString flowFlagString[3] = {" no fit", " flow fit", ""};
+  TString flowFlagString[3] = {", no fit", ", flow fit", ""};
+  //TString flowFlagString[3] = {", p < 0.05 && p > 0.95", ", 0.05 < p < 0.95", ""};
 
   // Find the number of files
   const int nFiles = inputFile.size();
