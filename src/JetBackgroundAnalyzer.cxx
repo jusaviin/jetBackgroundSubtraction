@@ -294,7 +294,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   // Event variables
   Int_t nEvents = 0;                // Number of events
   Double_t vz = 0;                  // Vertex z-position
-  Double_t centrality = 0;          // Event centrality
+  Double_t centrality = 0;          // Collision centrality
   Int_t hiBin = 0;                  // CMS hiBin (centrality * 2)
   Double_t ptHat = 0;               // pT hat for MC events
   

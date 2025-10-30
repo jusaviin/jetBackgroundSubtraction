@@ -40,8 +40,8 @@ public:
   JetBackgroundAnalyzer& operator=(const JetBackgroundAnalyzer& obj); // Equal sign operator
   
   // Methods
-  void RunAnalysis();                     // Run the dijet analysis
-  JetBackgroundHistograms* GetHistograms() const;   // Getter for histograms
+  void RunAnalysis();                              // Run the dijet analysis
+  JetBackgroundHistograms* GetHistograms() const;  // Getter for histograms
 
  private:
   

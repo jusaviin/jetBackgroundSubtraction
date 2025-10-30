@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   const char* gitHash = "GITHASHHERE";
   
   // Read the card
-  ConfigurationCard *configurationCard = new ConfigurationCard(cardName);
+  ConfigurationCard* configurationCard = new ConfigurationCard(cardName);
   configurationCard->SetGitHash(gitHash);
   int debugLevel = configurationCard->Get("DebugLevel");
   if(debugLevel > 0){
