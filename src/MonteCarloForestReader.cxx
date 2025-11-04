@@ -9,6 +9,7 @@
 MonteCarloForestReader::MonteCarloForestReader() :
   fJetType(0),
   fJetAxis(0),
+  fDoFlowDebug(false),
   fHeavyIonTree(0),
   fSkimTree(0),
   fJetTree(0),
@@ -40,11 +41,8 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fGenJetWTAPhiBranch(0),
   fGenJetEtaBranch(0),
   fGenJetWTAEtaBranch(0),
-  fFlowFitVnBranch(0),
-  fFlowFitEventPlaneBranch(0),
-  fFlowFitFirstComponentBranch(0),
-  fFlowFitAmplitudeBranch(0),
-  fFlowFitQualityBranch(0),
+  fFlowFitParametersBranch(0),
+  fFlowDebugInfoBranch(0),
   fParticleFlowCandidateIdBranch(0),
   fParticleFlowCandidatePtBranch(0),
   fParticleFlowCandidatePhiBranch(0),
@@ -95,11 +93,13 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fGenJetWTAPhiArray(),
   fGenJetEtaArray(),
   fGenJetWTAEtaArray(),
-  fFlowFitVn(0),
-  fFlowFitEventPlane(0),
+  fFlowFitParameters(0),
+  fFlowFitDebugInfo(0),
   fFlowFitFirstComponent(0),
+  fFlowFitLastComponent(0),
   fFlowFitAmplitude(0),
   fFlowFitQuality(0),
+  fnFlowPFCandidates(0),
   fnParticleFlowCandidates(0),
   fParticleFlowCandidateIdVector(0),
   fParticleFlowCandidatePtVector(0),
@@ -134,6 +134,12 @@ MonteCarloForestReader::MonteCarloForestReader() :
   for(Int_t i = 0; i < fnMaxJet; i++){
     fJetMaxTrackPtArray[i] = -1;
   }
+
+  fFlowFitHistogram = new TH1D("flowFitHistogram", "flowFitHistogram", 10, -TMath::Pi(), TMath::Pi());
+  fFlowFitHistogram->Sumw2();
+
+  fFlowFitVn = new std::vector<float>(); fFlowFitVn->clear();
+  fFlowFitEventPlane = new std::vector<float>(); fFlowFitEventPlane->clear();
   
 }
 
@@ -143,10 +149,12 @@ MonteCarloForestReader::MonteCarloForestReader() :
  *  Arguments:
  *   Int_t jetType: 0 = Calo jets, 1 = CSPF jets, 2 = Flow subtracted CSPF jets
  *   Int_t jetAxis: 0 = E-scheme axis, 1 = WTA axis
+ *   Bool_t flowDebug: Flag for enabling flow debug parameters
  */
-MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
+MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis, Bool_t flowDebug) :
   fJetType(jetType),
   fJetAxis(jetAxis),
+  fDoFlowDebug(flowDebug),
   fHeavyIonTree(0),
   fSkimTree(0),
   fJetTree(0),
@@ -178,11 +186,8 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fGenJetWTAPhiBranch(0),
   fGenJetEtaBranch(0),
   fGenJetWTAEtaBranch(0),
-  fFlowFitVnBranch(0),
-  fFlowFitEventPlaneBranch(0),
-  fFlowFitFirstComponentBranch(0),
-  fFlowFitAmplitudeBranch(0),
-  fFlowFitQualityBranch(0),
+  fFlowFitParametersBranch(0),
+  fFlowDebugInfoBranch(0),
   fParticleFlowCandidateIdBranch(0),
   fParticleFlowCandidatePtBranch(0),
   fParticleFlowCandidatePhiBranch(0),
@@ -233,11 +238,13 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   fGenJetWTAPhiArray(),
   fGenJetEtaArray(),
   fGenJetWTAEtaArray(),
-  fFlowFitVn(0),
-  fFlowFitEventPlane(0),
+  fFlowFitParameters(0),
+  fFlowFitDebugInfo(0),
   fFlowFitFirstComponent(0),
+  fFlowFitLastComponent(0),
   fFlowFitAmplitude(0),
   fFlowFitQuality(0),
+  fnFlowPFCandidates(0),
   fnParticleFlowCandidates(0),
   fParticleFlowCandidateIdVector(0),
   fParticleFlowCandidatePtVector(0),
@@ -272,6 +279,12 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
   for(int i = 0; i < fnMaxJet; i++){
     fJetMaxTrackPtArray[i] = -1;
   }
+
+  fFlowFitHistogram = new TH1D("flowFitHistogram", "flowFitHistogram", 10, -TMath::Pi(), TMath::Pi());
+  fFlowFitHistogram->Sumw2();
+
+  fFlowFitVn = new std::vector<float>(); fFlowFitVn->clear();
+  fFlowFitEventPlane = new std::vector<float>(); fFlowFitEventPlane->clear();
   
 }
 
@@ -281,6 +294,7 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis) :
 MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in) :
   fJetType(in.fJetType),
   fJetAxis(in.fJetAxis),
+  fDoFlowDebug(in.fDoFlowDebug),
   fHeavyIonTree(in.fHeavyIonTree),
   fSkimTree(in.fSkimTree),
   fJetTree(in.fJetTree),
@@ -312,11 +326,8 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fGenJetWTAPhiBranch(in.fGenJetWTAPhiBranch),
   fGenJetEtaBranch(in.fGenJetEtaBranch),
   fGenJetWTAEtaBranch(in.fGenJetWTAEtaBranch),
-  fFlowFitVnBranch(in.fFlowFitVnBranch),
-  fFlowFitEventPlaneBranch(in.fFlowFitEventPlaneBranch),
-  fFlowFitFirstComponentBranch(in.fFlowFitFirstComponentBranch),
-  fFlowFitAmplitudeBranch(in.fFlowFitAmplitudeBranch),
-  fFlowFitQualityBranch(in.fFlowFitQualityBranch),
+  fFlowFitParametersBranch(in.fFlowFitParametersBranch),
+  fFlowDebugInfoBranch(in.fFlowDebugInfoBranch),
   fParticleFlowCandidateIdBranch(in.fParticleFlowCandidateIdBranch),
   fParticleFlowCandidatePtBranch(in.fParticleFlowCandidatePtBranch),
   fParticleFlowCandidatePhiBranch(in.fParticleFlowCandidatePhiBranch),
@@ -352,11 +363,16 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fnJets(in.fnJets),
   fnGenJets(in.fnGenJets),
   fEventWeight(in.fEventWeight),
+  fFlowFitParameters(in.fFlowFitParameters),
+  fFlowFitDebugInfo(in.fFlowFitDebugInfo),
   fFlowFitVn(in.fFlowFitVn),
   fFlowFitEventPlane(in.fFlowFitEventPlane),
   fFlowFitFirstComponent(in.fFlowFitFirstComponent),
+  fFlowFitLastComponent(in.fFlowFitLastComponent),
   fFlowFitAmplitude(in.fFlowFitAmplitude),
   fFlowFitQuality(in.fFlowFitQuality),
+  fnFlowPFCandidates(in.fnFlowPFCandidates),
+  fFlowFitHistogram(in.fFlowFitHistogram),
   fnParticleFlowCandidates(in.fnParticleFlowCandidates),
   fParticleFlowCandidateIdVector(in.fParticleFlowCandidateIdVector),
   fParticleFlowCandidatePtVector(in.fParticleFlowCandidatePtVector),
@@ -416,6 +432,7 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   
   fJetType = in.fJetType;
   fJetAxis = in.fJetAxis;
+  fDoFlowDebug = in.fDoFlowDebug;
   fHeavyIonTree = in.fHeavyIonTree;
   fSkimTree = in.fSkimTree;
   fJetTree = in.fJetTree;
@@ -447,11 +464,8 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fGenJetWTAPhiBranch = in.fGenJetWTAPhiBranch;
   fGenJetEtaBranch = in.fGenJetEtaBranch;
   fGenJetWTAEtaBranch = in.fGenJetWTAEtaBranch;
-  fFlowFitVnBranch = in.fFlowFitVnBranch;
-  fFlowFitEventPlaneBranch = in.fFlowFitEventPlaneBranch;
-  fFlowFitFirstComponentBranch = in.fFlowFitFirstComponentBranch;
-  fFlowFitAmplitudeBranch = in.fFlowFitAmplitudeBranch;
-  fFlowFitQualityBranch = in.fFlowFitQualityBranch;
+  fFlowFitParametersBranch = in.fFlowFitParametersBranch;
+  fFlowDebugInfoBranch = in.fFlowDebugInfoBranch;
   fParticleFlowCandidateIdBranch = in.fParticleFlowCandidateIdBranch;
   fParticleFlowCandidatePtBranch = in.fParticleFlowCandidatePtBranch;
   fParticleFlowCandidatePhiBranch = in.fParticleFlowCandidatePhiBranch;
@@ -487,11 +501,16 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fnJets = in.fnJets;
   fnGenJets = in.fnGenJets;
   fEventWeight = in.fEventWeight;
+  fFlowFitParameters = in.fFlowFitParameters;
+  fFlowFitDebugInfo = in.fFlowFitDebugInfo;
   fFlowFitVn = in.fFlowFitVn;
   fFlowFitEventPlane = in.fFlowFitEventPlane;
   fFlowFitFirstComponent = in.fFlowFitFirstComponent;
+  fFlowFitLastComponent = in. fFlowFitLastComponent;
   fFlowFitAmplitude = in.fFlowFitAmplitude;
   fFlowFitQuality = in.fFlowFitQuality;
+  fnFlowPFCandidates = in.fnFlowPFCandidates;
+  fFlowFitHistogram = in.fFlowFitHistogram;
   fnParticleFlowCandidates = in.fnParticleFlowCandidates;
   fParticleFlowCandidateIdVector = in.fParticleFlowCandidateIdVector;
   fParticleFlowCandidatePtVector = in.fParticleFlowCandidatePtVector;
@@ -631,20 +650,12 @@ void MonteCarloForestReader::Initialize(){
   fJetTree->SetBranchAddress("ngen",&fnGenJets,&fnGenJetsBranch);
 
   // Load the information about the flow fit in a given event
-  if(fJetType == 2){
+  if(fJetType == 2 && fDoFlowDebug){
     // This information can be loaded only if the flow fit is actually done
-
-    fJetTree->SetBranchStatus("flowFitVn",1);
-    fJetTree->SetBranchAddress("flowFitVn", &fFlowFitVn, &fFlowFitVnBranch);
-    fJetTree->SetBranchStatus("flowFitEventPlane",1);
-    fJetTree->SetBranchAddress("flowFitEventPlane", &fFlowFitEventPlane, &fFlowFitEventPlaneBranch);
-    fJetTree->SetBranchStatus("flowFitFirstComponent",1);
-    fJetTree->SetBranchAddress("flowFitFirstComponent", &fFlowFitFirstComponent, &fFlowFitFirstComponentBranch);
-    fJetTree->SetBranchStatus("flowFitAmplitude",1);
-    fJetTree->SetBranchAddress("flowFitAmplitude", &fFlowFitAmplitude, &fFlowFitAmplitudeBranch);
-    fJetTree->SetBranchStatus("flowFitQuality",1);
-    fJetTree->SetBranchAddress("flowFitQuality", &fFlowFitQuality, &fFlowFitQualityBranch);
-
+    fJetTree->SetBranchStatus("flowFitParameters", 1);
+    fJetTree->SetBranchAddress("flowFitParameters", &fFlowFitParameters, &fFlowFitParametersBranch);
+    fJetTree->SetBranchStatus("flowFitDebugInfo", 1);
+    fJetTree->SetBranchAddress("flowFitDebugInfo", &fFlowFitDebugInfo, &fFlowDebugInfoBranch);
   }
 
   // Connect the branches to the particle flow candidate tree
@@ -776,6 +787,66 @@ void MonteCarloForestReader::GetEvent(Int_t iEvent){
   // Read the numbers of particle flow cnadidates and generator level particles for this event
   fnParticleFlowCandidates = fParticleFlowCandidatePtVector->size();
   fnGenParticles = fGenParticlePtArray->size();
+
+  // Extract information from the flow debug vectors
+  if(fDoFlowDebug){
+    DecodeFlowDebugVectors();
+  }
+}
+
+/*
+ *  Implementation of the flow function
+ */
+double flowFunction(double* x, double* par) {
+  unsigned int nFlow = par[0];          // Number of fitted flow components is defined in the first parameter
+  unsigned int firstFittedVn = par[1];  // The first fitted flow component is defined in the second parameter
+
+  // Add each component separately to the total fit value
+  double flowModulation = par[2];
+  for (unsigned int iFlow = 0; iFlow < nFlow; iFlow++) {
+    flowModulation += par[2] * 2.0 * par[2 * iFlow + 3] * std::cos((iFlow + firstFittedVn) * (x[0] - par[2 * iFlow + 4]));
+  }
+  return flowModulation;
+}
+
+// Exctract information from the flow debug vectors
+void MonteCarloForestReader::DecodeFlowDebugVectors(){
+
+  // The last entry in the flow parameter vector gives the first fitted flow component
+  fFlowFitFirstComponent = fFlowFitParameters->back();
+
+  // The last fitted component can be calculated from the size of the fir parameter vector
+  fFlowFitLastComponent = fFlowFitFirstComponent + ((fFlowFitParameters->size() - 4) / 2) - 1;
+
+  // Determine the number of flow components from the first and last fitted component
+  Int_t nFlow = fFlowFitLastComponent - fFlowFitFirstComponent + 1;
+
+  // The flow fit probability is calculated using the following formula
+  Int_t chi2index = fFlowFitParameters->size() - 3;
+  fFlowFitQuality = ROOT::Math::chisquared_cdf_c(fFlowFitParameters->at(chi2index), fFlowFitParameters->at(chi2index + 1));
+ 
+  // The number of PF candidates used to determine if flow fit can be done is the first index in debug vector
+  fnFlowPFCandidates = fFlowFitDebugInfo->at(0);
+
+  // The histogram used to do the flow fit can be accessed through the flow fit debug info vector
+  Int_t nFlowFitBins = fFlowFitDebugInfo->size()-1;
+  fFlowFitHistogram->SetBins(nFlowFitBins, -TMath::Pi(), TMath::Pi());
+  for(size_t iBin = 1; iBin <= nFlowFitBins; iBin++){
+    fFlowFitHistogram->SetBinContent(iBin, fFlowFitDebugInfo->at(iBin));
+    fFlowFitHistogram->SetBinError(iBin, TMath::Sqrt(fFlowFitDebugInfo->at(iBin)));
+  }
+
+  // The flow fit vn values and event plane angles can be decoded from the flow fit parameters
+  fFlowFitAmplitude = fFlowFitParameters->at(0);
+  fFlowFitVn->clear();
+  fFlowFitEventPlane->clear();
+  for(Int_t iFlow = 0; iFlow < nFlow*2; iFlow = iFlow + 2){
+    fFlowFitVn->push_back(fFlowFitParameters->at(iFlow+1));
+    fFlowFitEventPlane->push_back(fFlowFitParameters->at(iFlow+2));
+  }
+
+
+
 }
 
 // Getter for number of events in the tree
@@ -1313,6 +1384,16 @@ Float_t MonteCarloForestReader::GetFlowFitAmplitude() const{
 Float_t MonteCarloForestReader::GetFlowFitQuality() const{
   return fFlowFitQuality;
 }
+
+// Getter for the flow fit histogram
+TH1D* MonteCarloForestReader::GetFlowFitHistogram() const{
+  return fFlowFitHistogram;
+} 
+
+// Getter for the number of PF candidates in the flow fit                 
+Int_t MonteCarloForestReader::GetNFlowPFCandidates() const{
+  return fnFlowPFCandidates;
+}               
 
 // Getters for leaves in the particle flow candidate tree
 

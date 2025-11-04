@@ -51,8 +51,10 @@ public:
   THnSparseF* fhInclusiveJet; // Inclusive jet information
   THnSparseF* fhLeadingJet;   // Leading jet information
   THnSparseF* fhJetPtClosure; // Jet pT closure histograms. Also information for response matrix.
-  THnSparseF *fhInclusiveJetEventPlane[knEventPlanes];  // Correlation between jets and event plane angles
-  THnSparseF *fhLeadingJetEventPlane[knEventPlanes];    // Correlation between leading jets and event plane angles
+  THnSparseF* fhInclusiveJetEventPlane[knEventPlanes];  // Correlation between jets and event plane angles
+  THnSparseF* fhLeadingJetEventPlane[knEventPlanes];    // Correlation between leading jets and event plane angles
+  THnSparseF* fFlowFitParameters;  // Debug parameters for the flow fit. Good to see how these look like
+
 
 private:
   

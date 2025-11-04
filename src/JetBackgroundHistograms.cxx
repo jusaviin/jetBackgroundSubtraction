@@ -30,6 +30,7 @@ JetBackgroundHistograms::JetBackgroundHistograms() :
   fhInclusiveJet(0),
   fhLeadingJet(0),
   fhJetPtClosure(0),
+  fFlowFitParameters(0),
   fCard(0)
 {
   // Default constructor
@@ -61,6 +62,7 @@ JetBackgroundHistograms::JetBackgroundHistograms(ConfigurationCard* newCard) :
   fhInclusiveJet(0),
   fhLeadingJet(0),
   fhJetPtClosure(0),
+  fFlowFitParameters(0),
   fCard(newCard)
 {
   // Custom constructor
@@ -91,6 +93,7 @@ JetBackgroundHistograms::JetBackgroundHistograms(const JetBackgroundHistograms& 
   fhInclusiveJet(in.fhInclusiveJet),
   fhLeadingJet(in.fhLeadingJet),
   fhJetPtClosure(in.fhJetPtClosure),
+  fFlowFitParameters(in.fFlowFitParameters),
   fCard(in.fCard)
 {
   // Copy constructor
@@ -126,6 +129,7 @@ JetBackgroundHistograms& JetBackgroundHistograms::operator=(const JetBackgroundH
   fhInclusiveJet = in.fhInclusiveJet;
   fhLeadingJet = in.fhLeadingJet;
   fhJetPtClosure = in.fhJetPtClosure;
+  fFlowFitParameters = in.fFlowFitParameters;
   fCard = in.fCard;
 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
@@ -157,6 +161,7 @@ JetBackgroundHistograms::~JetBackgroundHistograms(){
   delete fhInclusiveJet;
   delete fhLeadingJet;
   delete fhJetPtClosure;
+  delete fFlowFitParameters;
 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     delete fhInclusiveJetEventPlane[iEventPlane];
@@ -256,6 +261,20 @@ void JetBackgroundHistograms::CreateHistograms(){
   const Double_t minJetPtEventPlane = jetPtBinsEventPlane[0];
   const Double_t maxJetPtEventPlane = jetPtBinsEventPlane[nJetPtBinsEventPlane];
 
+  // Number of PF candidates used in the flow fit
+  const Int_t nFlowFitPFCandidateBins = fCard->GetNBin("FlowFitPFCandidateBins");
+  Double_t flowFitPFCandidateBins[nFlowFitPFCandidateBins+1];
+  for(Int_t iFlowBin = 0; iFlowBin < nFlowFitPFCandidateBins+1; iFlowBin++){
+    flowFitPFCandidateBins[iFlowBin] = fCard->Get("FlowFitPFCandidateBins",iFlowBin);
+  }
+  const Double_t minFlowFitPFCandidate = flowFitPFCandidateBins[0];
+  const Double_t maxFlowFitPFCandidate = flowFitPFCandidateBins[nFlowFitPFCandidateBins];
+
+  // Fit probability distribution
+  const Int_t nFlowFitProbabilityBins = 20;
+  const Double_t minFlowFitProbability = 0;
+  const Double_t maxFlowFitProbability = 1;
+
   // Arrays for creating THnSparses
   const Int_t nAxesJet = 6;
   Int_t nBinsJet[nAxesJet];
@@ -267,10 +286,15 @@ void JetBackgroundHistograms::CreateHistograms(){
   Double_t lowBinBorderJetClosure[nAxesJetClosure];
   Double_t highBinBorderJetClosure[nAxesJetClosure];
 
-  const Int_t nAxesJetEventPlaneCorrelation = 3;
+  const Int_t nAxesJetEventPlaneCorrelation = 4;
   Int_t nBinsJetPtEventPlaneCorrelation[nAxesJetEventPlaneCorrelation];
   Double_t lowBinBorderJetEventPlaneCorrelation[nAxesJetEventPlaneCorrelation];
   Double_t highBinBorderJetEventPlaneCorrelation[nAxesJetEventPlaneCorrelation];
+
+  const Int_t nAxesFlowFitParameter = 4;
+  Int_t nBinsFlowFitParameter[nAxesFlowFitParameter];
+  Double_t lowBinBorderFlowFitParameter[nAxesFlowFitParameter];
+  Double_t highBinBorderFlowFitParameter[nAxesFlowFitParameter];
   
   // ======== Plain TH1 histograms ========
   
@@ -378,20 +402,25 @@ void JetBackgroundHistograms::CreateHistograms(){
   
   // ======== THnSparses for jet-event plane correlation study ========
   
-  // Axis 0 for the additional histogram: DeltaPhi between jet and event plane angle
+  // Axis 0 for the jet-event plane histogram: DeltaPhi between jet and event plane angle
   nBinsJetPtEventPlaneCorrelation[0] = nDeltaPhiBinsJetEventPlane;       // nBins for deltaPhi between jet and event plane
   lowBinBorderJetEventPlaneCorrelation[0] = minDeltaPhiJetEventPlane;    // low bin border for deltaPhi between jet and event plane
   highBinBorderJetEventPlaneCorrelation[0] = maxDeltaPhiJetEventPlane;   // high bin border for deltaPhi between jet and event plane
   
-  // Axis 1 for the additional histogram: jet pT
-  nBinsJetPtEventPlaneCorrelation[1] = nJetPtBinsEventPlane;       // nBins for wide multiplicity bins
-  lowBinBorderJetEventPlaneCorrelation[1] = minJetPtEventPlane;    // low bin border for wide multiplicity
-  highBinBorderJetEventPlaneCorrelation[1] = maxJetPtEventPlane;   // high bin border for wide multiplicity
+  // Axis 1 for the jet-event plane histogram: jet pT
+  nBinsJetPtEventPlaneCorrelation[1] = nJetPtBinsEventPlane;       // nBins for jet pT
+  lowBinBorderJetEventPlaneCorrelation[1] = minJetPtEventPlane;    // low bin border for jet pT
+  highBinBorderJetEventPlaneCorrelation[1] = maxJetPtEventPlane;   // high bin border for jet pT
   
-  // Axis 2 for the additional histogram: centrality
-  nBinsJetPtEventPlaneCorrelation[2] = nWideCentralityBins;           // nBins for centrality
+  // Axis 2 for the jet-event plane histogram: centrality
+  nBinsJetPtEventPlaneCorrelation[2] = nWideCentralityBins;         // nBins for centrality
   lowBinBorderJetEventPlaneCorrelation[2] = minCentrality;          // low bin border for centrality
   highBinBorderJetEventPlaneCorrelation[2] = maxCentrality;         // high bin border for centrality
+
+  // Axis 3 for the jet-event plane histogram: flag if the flow fit is applied or not
+  nBinsJetPtEventPlaneCorrelation[3] = 2;           // The flag can be on or off
+  lowBinBorderJetEventPlaneCorrelation[3] = -0.5;   // Zero means the fit is not applied
+  highBinBorderJetEventPlaneCorrelation[3] = 1.5;   // One means the fit is applied
   
   // Create histograms for event plane study
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
@@ -404,6 +433,36 @@ void JetBackgroundHistograms::CreateHistograms(){
     fhInclusiveJetEventPlane[iEventPlane]->SetBinEdges(2,wideCentralityBins);
     fhLeadingJetEventPlane[iEventPlane]->SetBinEdges(2,wideCentralityBins);
   }
+
+  // ======== THnSparse for flow fit debug parameter histograms ========
+
+  // Axis 0 for the flow fit parameter histogram: number of PF candidates in the fit
+  nBinsFlowFitParameter[0] = nFlowFitPFCandidateBins;         // nBins for number of PF candidates
+  lowBinBorderFlowFitParameter[0] = minFlowFitPFCandidate;    // low bin border for number of PF candidates
+  highBinBorderFlowFitParameter[0] = maxFlowFitPFCandidate;   // high bin border for number of PF candidates
+
+  // Axis 1 for the flow fit parameter histogram: fit probability
+  nBinsFlowFitParameter[1] = nFlowFitProbabilityBins;        // nBins for fit probability
+  lowBinBorderFlowFitParameter[1] = minFlowFitProbability;   // low bin border for fit probability
+  highBinBorderFlowFitParameter[1] = maxFlowFitProbability;  // high bin border for fit probability
+
+  // Axis 2 for the flow fit parameter histogram: leading jet pT
+  nBinsFlowFitParameter[2] = nJetPtBinsEventPlane;       // nBins for leding jet pT
+  lowBinBorderFlowFitParameter[2] = minJetPtEventPlane;    // low bin border for leading jet pT
+  highBinBorderFlowFitParameter[2] = maxJetPtEventPlane;   // high bin border for leading jet pT
+
+  // Axis 3 for the flow fit parameter histogram: centrality
+  nBinsFlowFitParameter[3] = nWideCentralityBins;   // nBins for wide centrality bins
+  lowBinBorderFlowFitParameter[3] = minCentrality;  // low bin border for centrality
+  highBinBorderFlowFitParameter[3] = maxCentrality; // high bin border for centrality
+
+  // Create the histogram for all jets using the above binning information
+  fFlowFitParameters = new THnSparseF("flowFitParameters", "flowFitParameters", nAxesFlowFitParameter, nBinsFlowFitParameter, lowBinBorderFlowFitParameter, highBinBorderFlowFitParameter); fFlowFitParameters->Sumw2();
+
+  // Set custom centrality bins for histograms
+  fFlowFitParameters->SetBinEdges(0,flowFitPFCandidateBins);
+  fFlowFitParameters->SetBinEdges(2,jetPtBinsEventPlane);
+  fFlowFitParameters->SetBinEdges(3,wideCentralityBins);
 
 }
 
@@ -429,6 +488,7 @@ void JetBackgroundHistograms::Write() const{
   fhInclusiveJet->Write();
   fhLeadingJet->Write();
   fhJetPtClosure->Write();
+  fFlowFitParameters->Write();
 
   for(int iEventPlane = 0; iEventPlane < knEventPlanes; iEventPlane++){
     fhInclusiveJetEventPlane[iEventPlane]->Write();

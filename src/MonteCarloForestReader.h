@@ -20,6 +20,7 @@
 #include <TChain.h>
 #include <TBranch.h>
 #include <TFile.h>
+#include <Math/ProbFunc.h>
 
 // Own includes
 #include "JetBackgroundHistograms.h"
@@ -37,16 +38,16 @@ public:
   enum enumJetType {kReconstructedJet, kGeneratorLevelJet, knJetTypes};
   
   // Constructors and destructors
-  MonteCarloForestReader();                                              // Default constructor
-  MonteCarloForestReader(Int_t jetType, Int_t jetAxis);                  // Custom constructor
-  MonteCarloForestReader(const MonteCarloForestReader& in);              // Copy constructor
-  ~MonteCarloForestReader();                                             // Destructor
-  MonteCarloForestReader& operator=(const MonteCarloForestReader& obj);  // Equal sign operator
+  MonteCarloForestReader();                                               // Default constructor
+  MonteCarloForestReader(Int_t jetType, Int_t jetAxis, Bool_t flowDebug); // Custom constructor
+  MonteCarloForestReader(const MonteCarloForestReader& in);               // Copy constructor
+  ~MonteCarloForestReader();                                              // Destructor
+  MonteCarloForestReader& operator=(const MonteCarloForestReader& obj);   // Equal sign operator
   
   // Methods
   void GetEvent(Int_t iEvent);                 // Get the i:th event in tree
   Int_t GetNEvents() const;                    // Get the number of events
-  void ReadForestFromFile(TFile *inputFile);   // Read the forest from a file
+  void ReadForestFromFile(TFile* inputFile);   // Read the forest from a file
   void ReadForestFromFileList(std::vector<TString> fileList);   // Read the forest from a file list
   void BurnForest();                           // Burn the forest
   
@@ -116,6 +117,8 @@ public:
   Int_t GetFlowFitFirstComponent() const;              // Getter for the first component of the flow fit
   Float_t GetFlowFitAmplitude() const;                 // Getter for the amplitude of the flow fit
   Float_t GetFlowFitQuality() const;                   // Getter for quality measure of the flow fit
+  TH1D* GetFlowFitHistogram() const;                   // Getter for the flow fit histogram
+  Int_t GetNFlowPFCandidates() const;                  // Getter for the number of PF candidates in the flow fit
 
   // Getters for leaves in the particle flow candidate tree
   Int_t GetParticleFlowCandidateId(Int_t iCandidate) const;      // Getter for particle flow candidate ID
@@ -153,10 +156,12 @@ public:
 private:
   
   // Methods
-  void Initialize();      // Connect the branches to the tree
+  void Initialize();             // Connect the branches to the tree
+  void DecodeFlowDebugVectors(); // Exctract information from the flow debug vectors
     
   Int_t fJetType;         // Choose the type of jets used for analysis. 0 = Calo PU jets, 1 = PF CS jets, 2 = Flow subtracted Pf CS jets
   Int_t fJetAxis;         // Jet axis used for the jets. 0 = Anti-kT, 1 = WTA
+  Bool_t fDoFlowDebug;    // Read the debug branches for flow subtraction
   
   // Trees in the forest
   TTree* fHeavyIonTree;              // Tree for heavy ion event information
@@ -199,11 +204,8 @@ private:
   TBranch* fGenJetEtaBranch;     // Branch for generator level jet eta
   TBranch* fGenJetWTAEtaBranch;  // Branch for generator level jet eta
 
-  TBranch* fFlowFitVnBranch;             // Branch for vn from the flow fit
-  TBranch* fFlowFitEventPlaneBranch;     // Branch for event plane angles from the flow fit
-  TBranch* fFlowFitFirstComponentBranch; // Branch for first fitted flow component in the flow fit
-  TBranch* fFlowFitAmplitudeBranch;      // Branch for the amplitude of the flow fit
-  TBranch* fFlowFitQualityBranch;        // Branch for fit quality from the flow fit
+  TBranch* fFlowFitParametersBranch;  // Branch for flow fit parameters
+  TBranch* fFlowDebugInfoBranch;      // Branch for flow fit debug information
 
   // Branches for particle flow candidate tree
   TBranch *fParticleFlowCandidateIdBranch;    // Branch for particle flow candidate ID
@@ -272,11 +274,16 @@ private:
   Float_t fGenJetWTAEtaArray[fnMaxJet] = {0};   // WTA etas of the generator level jets in an event
 
   // Leaves for flow fit study
+  vector<double>* fFlowFitParameters;
+  vector<double>* fFlowFitDebugInfo;
   vector<float>* fFlowFitVn;          // All fitted vn components from the flow fit
   vector<float>* fFlowFitEventPlane;  // All event plane angles from the flow fit
   Int_t fFlowFitFirstComponent;       // First fitted component in the flow fit
+  Int_t fFlowFitLastComponent;        // Last fitted component in the flow fit
   Float_t fFlowFitAmplitude;          // Amplitude of the flow fit
   Float_t fFlowFitQuality;            // Fit quality from the flow fit
+  Int_t fnFlowPFCandidates;           // Number of PF candidates used in the flow fit
+  TH1D* fFlowFitHistogram;            // Histogram used to determine the flow fit
 
   // Leaves for the particle flow candidate tree
   Int_t fnParticleFlowCandidates;                     // Number of particle flow candidates
