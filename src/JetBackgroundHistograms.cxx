@@ -196,7 +196,7 @@ void JetBackgroundHistograms::CreateHistograms(){
   // Phi
   const Double_t minPhi = -TMath::Pi();  // Minimum phi
   const Double_t maxPhi = TMath::Pi();   // Maximum phi
-  const Int_t nPhiBins = 64;             // Number of phi bins
+  const Int_t nPhiBins = 65;             // Number of phi bins
   
   // Eta
   const Double_t minEta = -2.5;    // Minimum eta (current eta cut for tracks = 2.4)

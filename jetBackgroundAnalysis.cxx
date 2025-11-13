@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   const char* gitHash = "GITHASHHERE";
   
   // Read the card
-  ConfigurationCard *configurationCard = new ConfigurationCard(cardName);
+  ConfigurationCard* configurationCard = new ConfigurationCard(cardName);
   configurationCard->SetGitHash(gitHash);
   int debugLevel = configurationCard->Get("DebugLevel");
   if(debugLevel > 0){
@@ -178,15 +178,21 @@ int main(int argc, char **argv) {
   
   // Variable for histograms in the analysis
   JetBackgroundHistograms* histograms;
+  TH1D* flowFitHistogram = nullptr;
+  TF1* flowFitFunction = nullptr;
   
   // Run the analysis over the list of files
   JetBackgroundAnalyzer* jetBackgroundAnalysis = new JetBackgroundAnalyzer(fileNameVector, configurationCard);
   jetBackgroundAnalysis->RunAnalysis();
   histograms = jetBackgroundAnalysis->GetHistograms();
+  flowFitHistogram = jetBackgroundAnalysis->GetFlowFitHistogram();
+  flowFitFunction = jetBackgroundAnalysis->GetFlowFitFunction();
   
   // Write the histograms and card to file
   TFile* outputFile = new TFile(outputFileName, "RECREATE");
   histograms->Write();
+  if(flowFitHistogram) flowFitHistogram->Write("flowFitHistogram");
+  if(flowFitFunction) flowFitFunction->Write("flowFitFunction");
   configurationCard->WriteCard(outputFile);
   outputFile->Close();
   

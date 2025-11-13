@@ -140,6 +140,8 @@ MonteCarloForestReader::MonteCarloForestReader() :
 
   fFlowFitVn = new std::vector<float>(); fFlowFitVn->clear();
   fFlowFitEventPlane = new std::vector<float>(); fFlowFitEventPlane->clear();
+
+  fFlowFitFunction = nullptr;
   
 }
 
@@ -285,6 +287,8 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis, Boo
 
   fFlowFitVn = new std::vector<float>(); fFlowFitVn->clear();
   fFlowFitEventPlane = new std::vector<float>(); fFlowFitEventPlane->clear();
+
+  fFlowFitFunction = nullptr;
   
 }
 
@@ -373,6 +377,7 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fFlowFitQuality(in.fFlowFitQuality),
   fnFlowPFCandidates(in.fnFlowPFCandidates),
   fFlowFitHistogram(in.fFlowFitHistogram),
+  fFlowFitFunction(in.fFlowFitFunction),
   fnParticleFlowCandidates(in.fnParticleFlowCandidates),
   fParticleFlowCandidateIdVector(in.fParticleFlowCandidateIdVector),
   fParticleFlowCandidatePtVector(in.fParticleFlowCandidatePtVector),
@@ -511,6 +516,7 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fFlowFitQuality = in.fFlowFitQuality;
   fnFlowPFCandidates = in.fnFlowPFCandidates;
   fFlowFitHistogram = in.fFlowFitHistogram;
+  fFlowFitFunction = in.fFlowFitFunction;
   fnParticleFlowCandidates = in.fnParticleFlowCandidates;
   fParticleFlowCandidateIdVector = in.fParticleFlowCandidateIdVector;
   fParticleFlowCandidatePtVector = in.fParticleFlowCandidatePtVector;
@@ -845,7 +851,18 @@ void MonteCarloForestReader::DecodeFlowDebugVectors(){
     fFlowFitEventPlane->push_back(fFlowFitParameters->at(iFlow+2));
   }
 
+  // Create the flow fit function
+  if(fFlowFitFunction == nullptr){
+    fFlowFitFunction = new TF1("flowFitFunction", flowFunction, -TMath::Pi(), TMath::Pi(), nFlow * 2 + 3);
+    fFlowFitFunction->FixParameter(0, nFlow);                  // The first parameter defines the number of fitted flow components
+    fFlowFitFunction->FixParameter(1, fFlowFitFirstComponent); // The second parameter defines the first fitted flow component
+  }
 
+  // Fill the parameters from this event
+  fFlowFitFunction->SetParameter(2, fFlowFitParameters->at(0));
+  for(Int_t iFlow = 0; iFlow < nFlow*2; iFlow++){
+    fFlowFitFunction->SetParameter(iFlow+3, fFlowFitParameters->at(iFlow+1));
+  }
 
 }
 
@@ -1389,6 +1406,12 @@ Float_t MonteCarloForestReader::GetFlowFitQuality() const{
 TH1D* MonteCarloForestReader::GetFlowFitHistogram() const{
   return fFlowFitHistogram;
 } 
+
+// Getter for the flow fit function
+TF1* MonteCarloForestReader::GetFlowFitFunction() const{
+  return fFlowFitFunction;
+} 
+
 
 // Getter for the number of PF candidates in the flow fit                 
 Int_t MonteCarloForestReader::GetNFlowPFCandidates() const{

@@ -42,6 +42,8 @@ public:
   // Methods
   void RunAnalysis();                              // Run the dijet analysis
   JetBackgroundHistograms* GetHistograms() const;  // Getter for histograms
+  TH1D* GetFlowFitHistogram() const;               // Getter for the flow fit histogram
+  TF1* GetFlowFitFunction() const;                 // Getter for the flow fit function
 
  private:
   
@@ -96,11 +98,13 @@ public:
   Double_t fJetClosureMinimumPt;       // Minimum jet pT for jet pT closure plots
 
   // Variables for flow fit debugging study
-   Bool_t fDoFlowFitDebug;
-   Int_t fFlowFitMinPFCandidates;
-   Double_t fFlowFitMinProbability;
-   Double_t fFlowFitMaxProbability;
-  
+  Bool_t fDoFlowFitDebug;
+  Int_t fFlowFitMinPFCandidates;
+  Double_t fFlowFitMinProbability;
+  Double_t fFlowFitMaxProbability;
+  TH1D* fFlowFitHistogram;
+  TF1* fFlowFitFunction;
+
   // Jet pT closure histogram filling is optional
   Bool_t fFillJetPtClosure;            // Fill jet pT closure histograms
 

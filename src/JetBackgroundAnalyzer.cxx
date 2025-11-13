@@ -45,6 +45,8 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer() :
   fFlowFitMinPFCandidates(0),
   fFlowFitMinProbability(0),
   fFlowFitMaxProbability(0),
+  fFlowFitHistogram(0),
+  fFlowFitFunction(0),
   fFillJetPtClosure(false)
 {
   // Default constructor
@@ -145,6 +147,8 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(const JetBackgroundAnalyzer& in) :
   fFlowFitMinPFCandidates(in.fFlowFitMinPFCandidates),
   fFlowFitMinProbability(in.fFlowFitMinProbability),
   fFlowFitMaxProbability(in.fFlowFitMaxProbability),
+  fFlowFitHistogram(in.fFlowFitHistogram),
+  fFlowFitFunction(in.fFlowFitFunction),
   fFillJetPtClosure(in.fFillJetPtClosure)
 {
   // Copy constructor
@@ -190,6 +194,8 @@ JetBackgroundAnalyzer& JetBackgroundAnalyzer::operator=(const JetBackgroundAnaly
   fFlowFitMinPFCandidates = in.fFlowFitMinPFCandidates;
   fFlowFitMinProbability = in.fFlowFitMinProbability;
   fFlowFitMaxProbability = in.fFlowFitMaxProbability;
+  fFlowFitHistogram = in.fFlowFitHistogram;
+  fFlowFitFunction = in.fFlowFitFunction;
   fFillJetPtClosure = in.fFillJetPtClosure;
   
   return *this;
@@ -428,7 +434,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
     //         Main event loop for each file
     //************************************************
 
-    Int_t selectedEvent = 10;
+    Int_t selectedEvent = 249;
     
     for(Int_t iEvent = selectedEvent; iEvent < selectedEvent+1; iEvent++){ // nEvents
     //for(Int_t iEvent = 0; iEvent < nEvents; iEvent++){ // nEvents
@@ -571,7 +577,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         particleFlowCandidateEta = fEventReader->GetParticleFlowCandidateEta(iParticleFlowCandidate);
  
         // Require that eta is within +- 1
-        if(TMath::Abs(particleFlowCandidateEta > 1)) continue;
+        if(TMath::Abs(particleFlowCandidateEta) > 1) continue;
 
         // For particle flow candidates surviving these cuts, fill the phi histograms
         particleFlowCandidatePhi = fEventReader->GetParticleFlowCandidatePhi(iParticleFlowCandidate);
@@ -596,6 +602,10 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         // Print also the fit quality and amplitude to the console
         std::cout << "FLOWFITQUALITY " << fEventReader->GetFlowFitQuality() << std::endl;
         std::cout << "FLOWFITAMPLITUDE " << fEventReader->GetFlowFitAmplitude() << std::endl;
+
+        // Find the flow histogram and fit as done by the HiForest
+        fFlowFitHistogram = fEventReader->GetFlowFitHistogram();
+        fFlowFitFunction = fEventReader->GetFlowFitFunction();
       }
 
 
@@ -975,11 +985,21 @@ Bool_t JetBackgroundAnalyzer::PassEventCuts(MonteCarloForestReader* eventReader,
 }
 
 /*
- * Getter for EEC histograms
+ * Getter for jet background histograms
  */
 JetBackgroundHistograms* JetBackgroundAnalyzer::GetHistograms() const{
   return fHistograms;
 }
+
+// Getter for the flow fit histogram
+TH1D* JetBackgroundAnalyzer::GetFlowFitHistogram() const{
+  return fFlowFitHistogram;
+}
+
+// Getter for the flow fit function            
+TF1* JetBackgroundAnalyzer::GetFlowFitFunction() const{
+  return fFlowFitFunction;
+}               
 
 /*
  * Getter for centrality bin

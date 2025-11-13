@@ -118,6 +118,7 @@ public:
   Float_t GetFlowFitAmplitude() const;                 // Getter for the amplitude of the flow fit
   Float_t GetFlowFitQuality() const;                   // Getter for quality measure of the flow fit
   TH1D* GetFlowFitHistogram() const;                   // Getter for the flow fit histogram
+  TF1* GetFlowFitFunction() const;                     // Getter for the flow fit function
   Int_t GetNFlowPFCandidates() const;                  // Getter for the number of PF candidates in the flow fit
 
   // Getters for leaves in the particle flow candidate tree
@@ -284,6 +285,7 @@ private:
   Float_t fFlowFitQuality;            // Fit quality from the flow fit
   Int_t fnFlowPFCandidates;           // Number of PF candidates used in the flow fit
   TH1D* fFlowFitHistogram;            // Histogram used to determine the flow fit
+  TF1* fFlowFitFunction;              // The actual performed flow fit
 
   // Leaves for the particle flow candidate tree
   Int_t fnParticleFlowCandidates;                     // Number of particle flow candidates
