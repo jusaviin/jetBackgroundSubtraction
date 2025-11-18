@@ -13,6 +13,7 @@
 #include <iostream>
 #include <assert.h>
 #include <vector>
+#include <tuple>
 
 // Root includes
 #include <TString.h>
@@ -105,12 +106,26 @@ public:
   Float_t GetCalorimeterJetPhi(Int_t iJet) const;      // Getter for calorimeter jet phi
   Float_t GetCalorimeterJetEta(Int_t iJet) const;      // Getter for calorimeter jet eta
 
+  // Calo to gen matching
+  Bool_t HasMatchingGenJetForCalo(Int_t iJet) const;  // Check if calorimeter jet has a matching generator level jet
+  Int_t GetMatchingGenIndexForCalo(Int_t iJet) const; // Get the matching generator level jet index for the given calorimeter jet
+  Float_t GetMatchedGenPtForCalo(Int_t iJet) const;   // Getter for matched generator level jet pT
+  Float_t GetMatchedGenEtaForCalo(Int_t iJet) const;  // Getter for matched generator level jet eta
+  Float_t GetMatchedGenPhiForCalo(Int_t iJet) const;  // Getter for matched generator level jet phi
+
   // Gen to reco matching
-  Bool_t HasMatchingRecoJet(Int_t iJet) const;  // Check if generator level has a matching reconstructed jet
-  Int_t GetMatchingRecoIndex(Int_t iJet) const; // Get the matching reconstructed jet index for the given generator level jet
-  Float_t GetMatchedRecoPt(Int_t iJet) const;   // Getter for matched reconstructed jet pT
-  Float_t GetMatchedRecoEta(Int_t iJet) const;  // Getter for matched reconstructed jet eta
-  Float_t GetMatchedRecoPhi(Int_t iJet) const;  // Getter for matched reconstructed jet phi
+  Bool_t HasMatchingRecoJet(Int_t iJet, Bool_t doCalo = false) const;  // Check if generator level has a matching reconstructed jet
+  Int_t GetMatchingRecoIndex(Int_t iJet, Bool_t doCalo = false) const; // Get the matching reconstructed jet index for the given generator level jet
+  Float_t GetMatchedRecoPt(Int_t iJet, Bool_t doCalo = false) const;   // Getter for matched reconstructed jet pT
+  Float_t GetMatchedRecoEta(Int_t iJet, Bool_t doCalo = false) const;  // Getter for matched reconstructed jet eta
+  Float_t GetMatchedRecoPhi(Int_t iJet, Bool_t doCalo = false) const;  // Getter for matched reconstructed jet phi
+
+  // Gen to calo matching
+  Bool_t HasMatchingCaloJet(Int_t iJet) const;  // Check if generator level jet has a matching calorimeter jet
+  Int_t GetMatchingCaloIndex(Int_t iJet) const; // Get the matching calorimeter jet index for the given generator level jet
+  Float_t GetMatchedCaloPt(Int_t iJet) const;   // Getter for matched calorimeter jet pT
+  Float_t GetMatchedCaloEta(Int_t iJet) const;  // Getter for matched calorimeter jet eta
+  Float_t GetMatchedCaloPhi(Int_t iJet) const;  // Getter for matched calorimeter jet phi
 
   // Jet flavor
   Int_t GetJetFlavor(Int_t jetType, Int_t iJet) const; // Getter for the jet flavor for input jet type
@@ -154,6 +169,8 @@ private:
   // Methods
   void Initialize();             // Connect the branches to the tree
   void DecodeFlowDebugVectors(); // Exctract information from the flow debug vectors
+  void MatchCaloJetsToGen();     // Match calorimeter jets to generator level jets
+  Double_t GetDeltaR(const Double_t eta1, const Double_t phi1, const Double_t eta2, const Double_t phi2) const; // Get deltaR between two objects
     
   Int_t fJetType;         // Choose the type of jets used for analysis. 0 = Calo PU jets, 1 = PF CS jets, 2 = Flow subtracted Pf CS jets
   Int_t fJetAxis;         // Jet axis used for the jets. 0 = Anti-kT, 1 = WTA
@@ -271,6 +288,8 @@ private:
   Float_t fCaloJetPtArray[fnMaxJet] = {0};      // pT:s of the calorimeter jets in an event
   Float_t fCaloJetPhiArray[fnMaxJet] = {0};     // phis of the calorimeter jets in an event
   Float_t fCaloJetEtaArray[fnMaxJet] = {0};     // etas of the calorimeter jets in an event
+
+  vector<pair<int,int>> fCaloJetMatchMap;                // Matching calorimeter jets with generator level jets
 
   // The jet tree might include also debug information for flow subtraction
   vector<double>* fFlowFitParameters;

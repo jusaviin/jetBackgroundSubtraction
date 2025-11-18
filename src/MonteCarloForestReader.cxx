@@ -96,6 +96,7 @@ MonteCarloForestReader::MonteCarloForestReader() :
   fCaloJetPtArray(),
   fCaloJetPhiArray(),
   fCaloJetEtaArray(),
+  fCaloJetMatchMap(0),
   fFlowFitParameters(0),
   fFlowFitDebugInfo(0),
   fFirstFittedFlowComponent(0),
@@ -232,6 +233,7 @@ MonteCarloForestReader::MonteCarloForestReader(Int_t jetType, Int_t jetAxis, Boo
   fCaloJetPtArray(),
   fCaloJetPhiArray(),
   fCaloJetEtaArray(),
+  fCaloJetMatchMap(0),
   fFlowFitParameters(0),
   fFlowFitDebugInfo(0),
   fFirstFittedFlowComponent(0),
@@ -345,6 +347,7 @@ MonteCarloForestReader::MonteCarloForestReader(const MonteCarloForestReader& in)
   fnGenJets(in.fnGenJets),
   fnCaloJets(in.fnCaloJets),
   fEventWeight(in.fEventWeight),
+  fCaloJetMatchMap(in.fCaloJetMatchMap),
   fFlowFitParameters(in.fFlowFitParameters),
   fFlowFitDebugInfo(in.fFlowFitDebugInfo),
   fFirstFittedFlowComponent(in.fFirstFittedFlowComponent),
@@ -477,6 +480,7 @@ MonteCarloForestReader& MonteCarloForestReader::operator=(const MonteCarloForest
   fnGenJets = in.fnGenJets;
   fnCaloJets = in.fnCaloJets;
   fEventWeight = in.fEventWeight;
+  fCaloJetMatchMap = in.fCaloJetMatchMap;
   fFlowFitParameters = in.fFlowFitParameters;
   fFlowFitDebugInfo = in.fFlowFitDebugInfo;
   fFirstFittedFlowComponent = in.fFirstFittedFlowComponent;
@@ -753,6 +757,9 @@ void MonteCarloForestReader::GetEvent(Int_t iEvent){
   if(fDoFlowDebug){
     DecodeFlowDebugVectors();
   }
+
+  // Do the matching for calorimeter jets for this event
+  MatchCaloJetsToGen();
 }
 
 // Exctract information from the flow debug vectors
@@ -771,6 +778,79 @@ void MonteCarloForestReader::DecodeFlowDebugVectors(){
   // The number of PF candidates used to determine if flow fit can be done is the first index in debug vector
   fnFlowPFCandidates = fFlowFitDebugInfo->at(0);
 
+}
+
+// Match calorimeter jets to generator level jets
+void MonteCarloForestReader::MatchCaloJetsToGen(){
+
+  // Clear any previous content from the match map
+  fCaloJetMatchMap.clear();
+
+  // Calorimeter jets in the forest are sorted such that higher pT jets are at smaller indices
+  // We want to match higher pT jets first, so we loop over the calorimeter jets in order
+  // For each jet, we find the closest generator level jet that has to be within 0.4 from the calo jet
+  // If there are several gen jets within 0.4 of the calo jet, choose the one with the closest pT
+  vector<pair<double,int>> potentialMatches;
+  Double_t caloJetPt, caloJetEta, caloJetPhi;
+  Double_t genJetPt, genJetEta, genJetPhi;
+
+  for(int iCalo = 0; iCalo < fnCaloJets; iCalo++){
+    caloJetPt = GetCalorimeterJetPt(iCalo);
+    caloJetPhi = GetCalorimeterJetPhi(iCalo);
+    caloJetEta = GetCalorimeterJetEta(iCalo);
+
+    // Loop over the potential gen jet matches
+    potentialMatches.clear();
+    for(int iGenJet = 0; iGenJet < fnGenJets; iGenJet++){
+
+      // If a match has been already found for a given gen jet, do not include it in further calo jets
+      auto it = find_if(fCaloJetMatchMap.begin(), fCaloJetMatchMap.end(), [iGenJet](const pair<int,int>& p ){ return p.second == iGenJet; });
+      if(it != fCaloJetMatchMap.end()) continue;
+
+      genJetPt = GetGeneratorJetPt(iGenJet);
+      genJetPhi = GetGeneratorJetPhi(iGenJet);
+      genJetEta = GetGeneratorJetEta(iGenJet);
+
+      if(GetDeltaR(caloJetEta, caloJetPhi, genJetEta, genJetPhi) > 0.4) continue;
+
+      potentialMatches.push_back(make_pair(TMath::Abs(caloJetPt - genJetPt), iGenJet));
+
+    }
+
+    // If there is more than one match, sort the possible matches based on the difference in pT
+    if(potentialMatches.size() > 1) std::sort(potentialMatches.begin(), potentialMatches.end(), std::less<std::pair<double,int>>());
+
+    // If there is at least one match, set the matching indices for the track and the particle
+    if(potentialMatches.size() > 0){
+      fCaloJetMatchMap.push_back(make_pair(iCalo, potentialMatches.at(0).second));
+    }
+  }
+
+}
+
+/*
+ * Get deltaR between two objects
+ *
+ *  Arguments:
+ *   const Double_t eta1 = Eta of the first object
+ *   const Double_t phi1 = Phi of the first object
+ *   const Double_t eta2 = Eta of the second object
+ *   const Double_t phi2 = Phi of the second object
+ *
+ *  return: DeltaR between the two objects
+ */
+Double_t MonteCarloForestReader::GetDeltaR(const Double_t eta1, const Double_t phi1, const Double_t eta2, const Double_t phi2) const{
+  
+  Double_t deltaEta = eta1 - eta2;
+  Double_t deltaPhi = phi1 - phi2;
+  
+  // Transform deltaPhi to interval [-pi,pi]
+  while(deltaPhi > TMath::Pi()){deltaPhi += -2*TMath::Pi();}
+  while(deltaPhi < -TMath::Pi()){deltaPhi += 2*TMath::Pi();}
+  
+  // Return the distance between the objects
+  return TMath::Sqrt(deltaPhi*deltaPhi + deltaEta*deltaEta);
+  
 }
 
 
@@ -1069,7 +1149,10 @@ Float_t MonteCarloForestReader::GetCalorimeterJetEta(Int_t iJet) const{
 }
 
 // Check if generator level jet has a matching reconstructed jet
-Bool_t MonteCarloForestReader::HasMatchingRecoJet(Int_t iJet) const{
+Bool_t MonteCarloForestReader::HasMatchingRecoJet(Int_t iJet, Bool_t doCalo) const{
+
+  // If calo jet flag is up, return the value for calorimeter jets
+  if(doCalo) return HasMatchingCaloJet(iJet);
   
   // Ref pT array has pT for all the generator level jets that are matched with reconstructed jets
   // If our generator level pT is found from this array, check also eta and phi
@@ -1089,7 +1172,10 @@ Bool_t MonteCarloForestReader::HasMatchingRecoJet(Int_t iJet) const{
 }
 
 // Get the index of the matched reconstructed jet
-Int_t MonteCarloForestReader::GetMatchingRecoIndex(Int_t iJet) const{
+Int_t MonteCarloForestReader::GetMatchingRecoIndex(Int_t iJet, Bool_t doCalo) const{
+
+  // If calo jet flag is up, return the value for calorimeter jets
+  if(doCalo) return GetMatchingCaloIndex(iJet);
   
   // Ref pT array has pT for all the generator level jets that are matched with reconstructed jets
   // If our generator level pT is found from this array, check also eta and phi
@@ -1110,7 +1196,10 @@ Int_t MonteCarloForestReader::GetMatchingRecoIndex(Int_t iJet) const{
 }
 
 // Get the pT of the matched reconstructed jet
-Float_t MonteCarloForestReader::GetMatchedRecoPt(Int_t iJet) const{
+Float_t MonteCarloForestReader::GetMatchedRecoPt(Int_t iJet, Bool_t doCalo) const{
+
+  // If calo jet flag is up, return the value for calorimeter jets
+  if(doCalo) return GetMatchedCaloPt(iJet);
   
   // Find the index of the matching reconstructed jet
   Int_t matchingIndex = GetMatchingRecoIndex(iJet);
@@ -1124,8 +1213,11 @@ Float_t MonteCarloForestReader::GetMatchedRecoPt(Int_t iJet) const{
 }
 
 // Get the phi of the matched reconstructed jet
-Float_t MonteCarloForestReader::GetMatchedRecoPhi(Int_t iJet) const{
+Float_t MonteCarloForestReader::GetMatchedRecoPhi(Int_t iJet, Bool_t doCalo) const{
   
+  // If calo jet flag is up, return the value for calorimeter jets
+  if(doCalo) return GetMatchedCaloPhi(iJet);
+
   // Find the index of the matching reconstructed jet
   Int_t matchingIndex = GetMatchingRecoIndex(iJet);
   
@@ -1138,7 +1230,10 @@ Float_t MonteCarloForestReader::GetMatchedRecoPhi(Int_t iJet) const{
 }
 
 // Get the eta of the matched reconstructed jet
-Float_t MonteCarloForestReader::GetMatchedRecoEta(Int_t iJet) const{
+Float_t MonteCarloForestReader::GetMatchedRecoEta(Int_t iJet, Bool_t doCalo) const{
+
+  // If calo jet flag is up, return the value for calorimeter jets
+  if(doCalo) return GetMatchedCaloEta(iJet);
   
   // Find the index of the matching reconstructed jet
   Int_t matchingIndex = GetMatchingRecoIndex(iJet);
@@ -1149,6 +1244,131 @@ Float_t MonteCarloForestReader::GetMatchedRecoEta(Int_t iJet) const{
   // Return the matching jet eta
   if(fJetAxis == 0) return fJetEtaArray[matchingIndex];
   return fJetWTAEtaArray[matchingIndex];
+}
+
+// Check if generator level jet has a matching calorimeter jet
+Bool_t MonteCarloForestReader::HasMatchingCaloJet(Int_t iJet) const{
+  
+  // Matching index exists if it can be found from the calo jet match map
+  auto it = find_if(fCaloJetMatchMap.begin(), fCaloJetMatchMap.end(), [iJet](const pair<int,int>& p ){ return p.second == iJet; });
+  return (it != fCaloJetMatchMap.end());
+
+}
+
+// Get the matching calorimeter jet index for the given generator level jet
+Int_t MonteCarloForestReader::GetMatchingCaloIndex(Int_t iJet) const{
+
+  // Find the matched index from the calo jet match map
+  auto it = find_if(fCaloJetMatchMap.begin(), fCaloJetMatchMap.end(), [iJet](const pair<int,int>& p ){ return p.second == iJet; });
+  if(it != fCaloJetMatchMap.end()) return (*it).first;
+
+  // We could not find matching index, return -1 to tell this
+  return -1;
+
+}
+
+// Getter for matched calorimeter jet pT
+Float_t MonteCarloForestReader::GetMatchedCaloPt(Int_t iJet) const{
+
+  // Find the index of the matching calorimeter jet
+  Int_t matchingIndex = GetMatchingCaloIndex(iJet);
+  
+  // If we did not find macth, something went wrong. Return -999
+  if(matchingIndex == -1) return -999;
+  
+  // Return the matching calo jet pT
+  return GetCalorimeterJetPt(matchingIndex);
+
+}
+
+// Getter for matched calorimeter jet eta
+Float_t MonteCarloForestReader::GetMatchedCaloEta(Int_t iJet) const{
+
+    // Find the index of the matching calorimeter jet
+  Int_t matchingIndex = GetMatchingCaloIndex(iJet);
+  
+  // If we did not find macth, something went wrong. Return -999
+  if(matchingIndex == -1) return -999;
+  
+  // Return the matching calo jet eta
+  return GetCalorimeterJetEta(matchingIndex);
+
+}
+
+// Getter for matched calorimeter jet phi
+Float_t MonteCarloForestReader::GetMatchedCaloPhi(Int_t iJet) const{
+
+  // Find the index of the matching calorimeter jet
+  Int_t matchingIndex = GetMatchingCaloIndex(iJet);
+  
+  // If we did not find macth, something went wrong. Return -999
+  if(matchingIndex == -1) return -999;
+  
+  // Return the matching calo jet phi
+  return GetCalorimeterJetPhi(matchingIndex);
+
+}
+
+// Check if calorimeter jet has a matching generator level jet
+Bool_t MonteCarloForestReader::HasMatchingGenJetForCalo(Int_t iJet) const{
+
+  // Matching index exists if it can be found from the calo jet match map
+  auto it = find_if(fCaloJetMatchMap.begin(), fCaloJetMatchMap.end(), [iJet](const pair<int,int>& p ){ return p.first == iJet; });
+  return (it != fCaloJetMatchMap.end());
+
+}
+  
+// Get the matching generator level jet index for the given calorimeter jet
+Int_t MonteCarloForestReader::GetMatchingGenIndexForCalo(Int_t iJet) const{
+
+  // Find the matched index from the calo jet match map
+  auto it = find_if(fCaloJetMatchMap.begin(), fCaloJetMatchMap.end(), [iJet](const pair<int,int>& p ){ return p.first == iJet; });
+  if(it != fCaloJetMatchMap.end()) return (*it).second;
+
+  // We could not find matching index, return -1 to tell this
+  return -1;
+
+}
+
+// Getter for matched generator level jet pT
+Float_t MonteCarloForestReader::GetMatchedGenPtForCalo(Int_t iJet) const{
+
+  // Find the index of the matching generator level jet
+  Int_t matchingIndex = GetMatchingGenIndexForCalo(iJet);
+  
+  // If we did not find macth, something went wrong. Return -999
+  if(matchingIndex == -1) return -999;
+  
+  // Return the matching calo jet pT
+  return GetGeneratorJetPt(matchingIndex);
+} 
+  
+// Getter for matched generator level jet eta
+Float_t MonteCarloForestReader::GetMatchedGenEtaForCalo(Int_t iJet) const{
+
+  // Find the index of the matching generator level jet
+  Int_t matchingIndex = GetMatchingGenIndexForCalo(iJet);
+  
+  // If we did not find macth, something went wrong. Return -999
+  if(matchingIndex == -1) return -999;
+  
+  // Return the matching calo jet eta
+  return GetGeneratorJetEta(matchingIndex);
+
+}
+  
+// Getter for matched generator level jet phi
+Float_t MonteCarloForestReader::GetMatchedGenPhiForCalo(Int_t iJet) const{
+
+  // Find the index of the matching generator level jet
+  Int_t matchingIndex = GetMatchingGenIndexForCalo(iJet);
+  
+  // If we did not find macth, something went wrong. Return -999
+  if(matchingIndex == -1) return -999;
+  
+  // Return the matching calo jet phi
+  return GetGeneratorJetPhi(matchingIndex);
+
 }
 
 // Getter for the first flow component in the flow fit for background subtraction

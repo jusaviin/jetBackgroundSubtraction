@@ -2,7 +2,7 @@ PROGRAM       = jetBackgroundAnalysis
 
 version       = development
 CXX           = g++
-CXXFLAGS      = -g -Wall -D$(version) 
+CXXFLAGS      = -g -Wall -Wno-vla-extension -D$(version) 
 LDFLAGS       = -O2
 #############################################
 # -bind_at_load helps to remove linker error

@@ -835,20 +835,26 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         if(jetPt > fJetMaximumPtCut) continue;         // Cut for super high pT jets
 
         // For closure plots, we need to find a matching reconstructed jet
-        if(!fEventReader->HasMatchingRecoJet(jetIndex)) continue;
+        if(!fEventReader->HasMatchingRecoJet(jetIndex, fDoCalorimeterJets)) continue;
 
         // Read the reconstructed jet information
-        reconstructedJetPt = fEventReader->GetMatchedRecoPt(jetIndex);
-        reconstructedJetEta = fEventReader->GetMatchedRecoEta(jetIndex);
-        reconstructedJetPhi = fEventReader->GetMatchedRecoPhi(jetIndex);
+        reconstructedJetPt = fEventReader->GetMatchedRecoPt(jetIndex, fDoCalorimeterJets);
+        reconstructedJetEta = fEventReader->GetMatchedRecoEta(jetIndex, fDoCalorimeterJets);
+        reconstructedJetPhi = fEventReader->GetMatchedRecoPhi(jetIndex, fDoCalorimeterJets);
         partonFlavor = fEventReader->GetGenJetFlavor(jetIndex);
 
         // Apply jet energy correction for reconstructed jet
-        fJetCorrector2018->SetJetPT(reconstructedJetPt);
-        fJetCorrector2018->SetJetEta(reconstructedJetEta);
-        fJetCorrector2018->SetJetPhi(reconstructedJetPhi);
-
-        reconstructedJetPt = fJetCorrector2018->GetCorrectedPT();
+        if(fDoCalorimeterJets){
+          fCaloJetCorrector2018->SetJetPT(reconstructedJetPt);
+          fCaloJetCorrector2018->SetJetEta(reconstructedJetEta);
+          fCaloJetCorrector2018->SetJetPhi(reconstructedJetPhi);
+          reconstructedJetPt = fCaloJetCorrector2018->GetCorrectedPT();
+        } else {
+          fJetCorrector2018->SetJetPT(reconstructedJetPt);
+          fJetCorrector2018->SetJetEta(reconstructedJetEta);
+          fJetCorrector2018->SetJetPhi(reconstructedJetPhi);
+          reconstructedJetPt = fJetCorrector2018->GetCorrectedPT();
+        }
           
         // Apply gaussian smearing to take into account too good jet energy resolution
         if(fSmearResolution){
