@@ -15,7 +15,7 @@ LDFLAGS  += $(shell root-config --libs)
         
 # Use the following form if you have classes inherint TObject
 # HDRS += $(HDRSDICT) src/Class.h ... nanoDict.h       
-HDRS += src/MonteCarloForestReader.h src/JetBackgroundHistograms.h src/JetBackgroundAnalyzer.h src/ConfigurationCard.h src/JetCorrector.h src/JetUncertainty.h src/JetMetScalingFactorManager.h
+HDRS += src/MonteCarloForestReader.h src/JetBackgroundHistograms.h src/JetBackgroundAnalyzer.h src/ConfigurationCard.h src/JetCorrector.h src/JetUncertainty.h src/JetMetScalingFactorManager.h src/JetPhiFlattener.h
 
 SRCS = $(HDRS:.h=.cxx)
 OBJS = $(HDRS:.h=.o)

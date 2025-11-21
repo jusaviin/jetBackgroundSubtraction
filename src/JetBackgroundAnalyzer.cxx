@@ -23,6 +23,7 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer() :
   fJetCorrector2018(),
   fCaloJetCorrector2018(),
   fRng(0),
+  fPhiFlattener(),
   fJetType(0),
   fJetSubtraction(2),
   fDebugLevel(0),
@@ -110,6 +111,9 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(std::vector<TString> fileNameVector
   // Initialize the random number generator with a random seed
   fRng = new TRandom3();
   fRng->SetSeed(0);
+
+  // Initialize the phi flattener
+  fPhiFlattener = new JetPhiFlattener("jetPhiWeights.root");
   
 }
 
@@ -126,6 +130,7 @@ JetBackgroundAnalyzer::JetBackgroundAnalyzer(const JetBackgroundAnalyzer& in) :
   fCentralityWeightFunctionPeripheral(in.fCentralityWeightFunctionPeripheral),
   fSmearingFunction(in.fSmearingFunction),
   fRng(in.fRng),
+  fPhiFlattener(in.fPhiFlattener),
   fJetType(in.fJetType),
   fJetSubtraction(in.fJetSubtraction),
   fDebugLevel(in.fDebugLevel),
@@ -173,6 +178,7 @@ JetBackgroundAnalyzer& JetBackgroundAnalyzer::operator=(const JetBackgroundAnaly
   fCentralityWeightFunctionPeripheral = in.fCentralityWeightFunctionPeripheral;
   fSmearingFunction = in.fSmearingFunction;
   fRng = in.fRng;
+  fPhiFlattener = in.fPhiFlattener;
   fJetType = in.fJetType;
   fJetSubtraction = in.fJetSubtraction;
   fDebugLevel = in.fDebugLevel;
@@ -212,6 +218,7 @@ JetBackgroundAnalyzer::~JetBackgroundAnalyzer(){
   if(fVzWeightFunction) delete fVzWeightFunction;
   if(fJetCorrector2018) delete fJetCorrector2018;
   if(fCaloJetCorrector2018) delete fCaloJetCorrector2018;
+  if(fPhiFlattener) delete fPhiFlattener;
   if(fEnergyResolutionSmearingFinder) delete fEnergyResolutionSmearingFinder;
   if(fCentralityWeightFunctionCentral) delete fCentralityWeightFunctionCentral;
   if(fCentralityWeightFunctionPeripheral) delete fCentralityWeightFunctionPeripheral;
@@ -305,6 +312,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   Double_t jetEta = 0;              // eta of the i:th jet in the event
   Int_t jetFlavor = 0;              // Flavor of the jet. 0 = Quark jet. 1 = Gluon jet.
   Int_t matchingJetExists = 0;      // Flag for having a matching jet. 0 = No match found. 1 = Match exist
+  Double_t phiWeight = 0;           // Weight to flatten the phi distribution
 
   // Variables for leading jet
   Double_t leadingJetPt = 0;        // pT of the leading jet
@@ -606,8 +614,12 @@ void JetBackgroundAnalyzer::RunAnalysis(){
             smearingFactor = GetSmearingFactor(jetPt, jetEta, centrality);
             jetPt = jetPt * fRng->Gaus(1,smearingFactor);
           }
+
+          phiWeight = fPhiFlattener->GetJetPhiFlattener(centrality, jetPhi);
             
-        } // Jet pT correction
+        } else {
+          phiWeight = 1;
+        }
 
         // Check if the current jet has a matching jet
         matchingJetExists = 0;
@@ -674,7 +686,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
         fillerJet[4] = jetFlavor;         // Axis 4 = flavor of the jet
         fillerJet[5] = matchingJetExists; // Axis 5 = flag if matching jet exists
           
-        fHistograms->fhInclusiveJet->Fill(fillerJet,fTotalEventWeight); // Fill the data point to histogram
+        fHistograms->fhInclusiveJet->Fill(fillerJet,fTotalEventWeight*phiWeight); // Fill the data point to histogram
 
         //**********************************************************************
         //      Fill histograms for inclusive jet - event plane correlation
@@ -693,7 +705,7 @@ void JetBackgroundAnalyzer::RunAnalysis(){
           fillerEventPlane[2] = centrality;             // Axis 2: centrality
           fillerEventPlane[3] = flowFitApplied;         // Axis 3: flag if the flow fit is applied or not
 
-          fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight);
+          fHistograms->fhInclusiveJetEventPlane[iFlow]->Fill(fillerEventPlane, fTotalEventWeight*phiWeight);
 
         }
         

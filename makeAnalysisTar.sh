@@ -18,7 +18,7 @@ sed -i '' 's/GITHASHHERE/'${GITHASH}'/' jetBackgroundAnalysis.cxx
 make clean
 
 # Create the new tar ball
-tar -cvzf $OUTPUTTAR Makefile jetBackgroundAnalysis.cxx jetEnergyCorrections src
+tar -cvzf $OUTPUTTAR Makefile jetBackgroundAnalysis.cxx jetPhiWeights.root jetEnergyCorrections src
 
 # Put placeholder string back to the main analysis file
 sed -i '' 's/'${GITHASH}'/GITHASHHERE/' jetBackgroundAnalysis.cxx

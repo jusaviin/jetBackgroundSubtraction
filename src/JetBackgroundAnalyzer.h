@@ -23,6 +23,7 @@
 #include "JetCorrector.h"
 #include "JetUncertainty.h"
 #include "JetMetScalingFactorManager.h"
+#include "JetPhiFlattener.h"
 
 class JetBackgroundAnalyzer{
   
@@ -54,7 +55,7 @@ public:
   Double_t GetSmearingFactor(Double_t jetPt, Double_t jetEta, const Double_t centrality); // Getter for jet pT smearing factor
   Int_t GetCentralityBin(const Double_t centrality) const; // Getter for centrality bin
   Double_t GetDeltaR(const Double_t eta1, const Double_t phi1, const Double_t eta2, const Double_t phi2) const; // Get deltaR between two objects
-  
+
   // Private data members
   MonteCarloForestReader* fEventReader;            // Reader for jets in the event
   std::vector<TString> fFileNames;               // Vector for all the files to loop over
@@ -68,6 +69,7 @@ public:
   JetCorrector* fCaloJetCorrector2018;           // Class for making jet energy correction for calorimeter jets in 2018 data
   JetMetScalingFactorManager* fEnergyResolutionSmearingFinder; // Manager to find proper jet energy resolution scaling factors provided by the JetMet group
   TRandom3* fRng;                                // Random number generator
+  JetPhiFlattener* fPhiFlattener;                // Flatten the jet phi
   
   // Analyzed data and forest types
   Int_t fJetType;                    // Type of jets used for analysis. 0 = Reconstructed jets, 1 = Generator level jets
