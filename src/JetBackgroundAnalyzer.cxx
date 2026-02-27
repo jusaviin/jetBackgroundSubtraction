@@ -357,9 +357,11 @@ void JetBackgroundAnalyzer::RunAnalysis(){
   Double_t fillerClosure[nAxesClosure];
   Double_t fillerFlowFit[nFillFlowFit];
   
-  // For 2018 PbPb and 2017 pp data, we need to correct jet pT
-  std::string correctionFileRelative = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
-  std::string correctionFileCalo = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4Calo.txt";
+  // Jet pT correction files for manual correction
+  //std::string correctionFileRelative = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4PF.txt"; // 2018 dataset
+  std::string correctionFileCalo = "jetEnergyCorrections/Autumn18_HI_V8_MC_L2Relative_AK4Calo.txt";   // 2018 dataset
+
+  std::string correctionFileRelative = "jetEnergyCorrections/PbPb_2024_noPUcorr_L2Relative_AK4PF.txt"; // 2024 dataset
   
   vector<string> correctionFiles;
   correctionFiles.push_back(correctionFileRelative);
@@ -527,6 +529,16 @@ void JetBackgroundAnalyzer::RunAnalysis(){
       for(int iFlow = 0; iFlow < nFlowComponentsEP; iFlow++){
         eventPlaneQ[iFlow] = TMath::Sqrt(eventPlaneQx[iFlow]*eventPlaneQx[iFlow] + eventPlaneQy[iFlow]*eventPlaneQy[iFlow]);
         eventPlaneAngle[iFlow] = (1.0/(iFlow+2.0)) * TMath::ATan2(eventPlaneQy[iFlow], eventPlaneQx[iFlow]);
+      }
+
+      // 1/2 Atan2() gives a number between [-pi/2,pi/2]. 
+      // Randomly assign the opposite phi angle [-pi,-pi/2] U [pi/2,pi] for the second order event plane angle
+      if(fRng->Rndm() < 0.5){
+        if(eventPlaneAngle[0] > 0){
+          eventPlaneAngle[0] -= TMath::Pi();
+        } else {
+          eventPlaneAngle[0] += TMath::Pi(); 
+        }
       }
 
       // Normalize the Q-vector with multiplicity

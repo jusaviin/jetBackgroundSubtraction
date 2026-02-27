@@ -105,12 +105,12 @@ void drawClosureHistogram(std::vector<TH1D*> histogram, JetBackgroundCard* card,
   drawer->SetCanvasSize(700,700);
   const char* centralityString;
   const char* centralitySaveName;
-  int lineColors[] = {kBlack, kRed, kBlue, kGreen+3, kMagenta, kCyan};
+  int lineColors[] = {kBlack, kRed, kBlue, kMagenta, kGreen+3, kCyan};
   
   // Zooming and legend position options
   double yZoomLow = 0.9;
   double yZoomHigh = 1.1;
-  double legendX1 = 0.51;
+  double legendX1 = 0.47;
   double legendX2 = 0.93;
   double legendY1 = 0.65;
   double legendY2 = 0.92;
@@ -118,7 +118,7 @@ void drawClosureHistogram(std::vector<TH1D*> histogram, JetBackgroundCard* card,
   if(legendNzoom == 1){
     yZoomLow = 0;
     yZoomHigh = 0.34;
-    legendX1 = 0.51;
+    legendX1 = 0.47;
     legendX2 = 0.93;
     legendY1 = 0.65;
     legendY2 = 0.92;
@@ -228,9 +228,9 @@ void constructJetPtClosures(TString inputFileList = ""){
   // Default centrality bins: 4, 14, 34, 54, 94
   std::vector<std::pair<int,int>> analyzedCentralityBin;
   analyzedCentralityBin.push_back(std::make_pair(4,14));
-  //analyzedCentralityBin.push_back(std::make_pair(14,34));
-  //analyzedCentralityBin.push_back(std::make_pair(34,54));
-  //analyzedCentralityBin.push_back(std::make_pair(54,94));
+  analyzedCentralityBin.push_back(std::make_pair(14,34));
+  analyzedCentralityBin.push_back(std::make_pair(34,54));
+  analyzedCentralityBin.push_back(std::make_pair(54,94));
 
   
   bool drawPtClosure = true;
@@ -313,7 +313,7 @@ void constructJetPtClosures(TString inputFileList = ""){
   double gaussSigma = 0;
   double gaussMeanError = 0;
   double gaussSigmaError = 0;
-  int minGenPt = 7;  // Set this to 7 to skip bins below 120 GeV
+  int minGenPt = 3;  // Set this to 7 to skip bins below 120 GeV, and to 3 to skip bins below 80 GeV
   TString genPtString;
   TString centralityString;
   TString jetTypeName[JetBackgroundHistograms::knInitialPartonTypes+1] = {"Quark", "Gluon", "Undetermined", "All"};

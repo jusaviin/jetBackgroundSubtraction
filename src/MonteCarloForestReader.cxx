@@ -571,7 +571,7 @@ void MonteCarloForestReader::Initialize(){
   fSkimTree->SetBranchStatus("pclusterCompatibilityFilter",1);
   fSkimTree->SetBranchAddress("pclusterCompatibilityFilter", &fClusterCompatibilityFilterBit, &fClusterCompatibilityBranch);
   
-  // Connect the branches to the jet tree  
+  // Connect the branches to the jet tree
   fJetTree->SetBranchStatus("*",0);
   fJetTree->SetBranchStatus("jtpt",1);
   fJetTree->SetBranchAddress("jtpt",&fJetPtArray,&fJetPtBranch);
@@ -713,6 +713,11 @@ void MonteCarloForestReader::ReadForestFromFile(TFile* inputFile){
   treeName[2] = "akFlowPuCs4PFJetAnalyzer/t"; // Tree for flow subtracted csPF jets
   
   fJetTree = (TTree*)inputFile->Get(treeName[fJetType]);
+
+  // Run3 has different naming convention for flow subtracted jets
+  if(!fJetTree){
+    fJetTree = (TTree*)inputFile->Get("akCs4FlowPFJetAnalyzer/t");
+  }
   
   // Read track and generator level particle trees
   //fTrackTree = (TTree*)inputFile->Get("PbPbTracks/trackTree");
